@@ -83,6 +83,9 @@ export function DealModal({ checkIfOpen, onClose, initialStep = 1, initialCompan
     );
 }
 
+// Countries List
+const TOP_COUNTRIES = ["United States", "Israel"];
+const OTHER_COUNTRIES = ["United Kingdom", "Canada", "Germany", "France", "Singapore", "Sweden", "Switzerland", "Netherlands", "Australia", "South Korea", "Japan", "Brazil", "India"];
 
 function StepCompany({ initialCompany = "" }: { initialCompany?: string }) {
     return (
