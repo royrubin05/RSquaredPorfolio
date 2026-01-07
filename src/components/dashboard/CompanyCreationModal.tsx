@@ -2,10 +2,14 @@
 
 import { X, Check, FileText, Trash2, Pencil, Upload, Building2, Layout } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
+import { NotesManager, Note } from "../shared/NotesManager";
+import { DocumentsManager, CompanyDocument } from "../shared/DocumentsManager";
 
 interface CompanyData {
     id?: string;
     name: string;
+    website?: string;
+    affinityLink?: string;
     category: string;
     country: string;
     oneLiner: string;
@@ -19,24 +23,22 @@ interface CompanyCreationModalProps {
     checkIfOpen: boolean;
     onClose: () => void;
     initialData?: CompanyData | null;
+    onSave: (data: CompanyData) => void;
 }
 
 // Countries List
 const TOP_COUNTRIES = ["United States", "Israel", "United Kingdom", "Canada"];
 const OTHER_COUNTRIES = ["Germany", "France", "Singapore", "Sweden", "Switzerland", "Netherlands", "Australia", "South Korea", "Japan", "Brazil", "India"];
 
-interface CompanyDocument {
-    id: string;
-    name: string;
-    size: string;
-    type: string;
-}
 
-export function CompanyCreationModal({ checkIfOpen, onClose, initialData }: CompanyCreationModalProps) {
+
+export function CompanyCreationModal({ checkIfOpen, onClose, initialData, onSave }: CompanyCreationModalProps) {
     const [activeTab, setActiveTab] = useState<'profile' | 'documents' | 'notes'>('profile');
 
     // Form State
     const [name, setName] = useState("");
+    const [website, setWebsite] = useState("");
+    const [affinityLink, setAffinityLink] = useState("");
     const [category, setCategory] = useState("");
     const [country, setCountry] = useState("US");
     const [oneLiner, setOneLiner] = useState("");
@@ -51,15 +53,15 @@ export function CompanyCreationModal({ checkIfOpen, onClose, initialData }: Comp
     const [editName, setEditName] = useState("");
 
     // Notes State
-    const [notes, setNotes] = useState<{ id: string, content: string, date: string, author: string }[]>([]);
-    const [noteContent, setNoteContent] = useState("");
-    const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+    const [notes, setNotes] = useState<Note[]>([]);
 
     // Reset or Populate on Open
     useEffect(() => {
         if (checkIfOpen) {
             if (initialData) {
                 setName(initialData.name || "");
+                setWebsite(initialData.website || "");
+                setAffinityLink(initialData.affinityLink || "");
                 setCategory(initialData.category || "");
                 setCountry(initialData.country || "US");
                 setOneLiner(initialData.oneLiner || "");
@@ -73,6 +75,8 @@ export function CompanyCreationModal({ checkIfOpen, onClose, initialData }: Comp
             } else {
                 // Reset for new company
                 setName("");
+                setWebsite("");
+                setAffinityLink("");
                 setCategory("");
                 setCountry("US");
                 setOneLiner("");
@@ -90,59 +94,29 @@ export function CompanyCreationModal({ checkIfOpen, onClose, initialData }: Comp
 
     // --- HANDLERS ---
 
+    const handleSave = () => {
+        const companyData: CompanyData = {
+            id: initialData?.id, // Preserve ID if editing
+            name,
+            website,
+            affinityLink,
+            category,
+            country,
+            oneLiner,
+            formationDate,
+            jurisdiction,
+            description,
+            documents
+        };
+        onSave(companyData);
+        alert("Company profile saved successfully.");
+        onClose();
+    };
+
     // Notes
-    const addNote = () => {
-        if (!noteContent.trim()) return;
-        if (editingNoteId) {
-            setNotes(notes.map(n => n.id === editingNoteId ? { ...n, content: noteContent } : n));
-            setEditingNoteId(null);
-        } else {
-            const newNote = {
-                id: Math.random().toString(36).substr(2, 9),
-                content: noteContent,
-                date: new Date().toLocaleDateString(),
-                author: "You" // Placeholder
-            };
-            setNotes([newNote, ...notes]);
-        }
-        setNoteContent("");
-    };
 
-    const deleteNote = (id: string) => setNotes(notes.filter(n => n.id !== id));
 
-    const startEditingNote = (note: { id: string, content: string }) => {
-        setEditingNoteId(note.id);
-        setNoteContent(note.content);
-        setActiveTab('notes');
-    };
 
-    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files.length > 0) {
-            const newDocs: CompanyDocument[] = Array.from(e.target.files).map(file => ({
-                id: Math.random().toString(36).substr(2, 9),
-                name: file.name,
-                size: (file.size / 1024 / 1024).toFixed(2) + " MB",
-                type: file.type
-            }));
-            setDocuments([...documents, ...newDocs]);
-        }
-    };
-
-    const deleteDocument = (id: string) => {
-        setDocuments(documents.filter(d => d.id !== id));
-    };
-
-    const startEditing = (doc: CompanyDocument) => {
-        setEditingDocId(doc.id);
-        setEditName(doc.name);
-    };
-
-    const saveEdit = () => {
-        if (editingDocId) {
-            setDocuments(documents.map(d => d.id === editingDocId ? { ...d, name: editName } : d));
-            setEditingDocId(null);
-        }
-    };
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm transition-all duration-300">
@@ -222,6 +196,27 @@ export function CompanyCreationModal({ checkIfOpen, onClose, initialData }: Comp
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
+                                    <label className="block text-sm font-medium text-muted-foreground">Website</label>
+                                    <input
+                                        type="url"
+                                        placeholder="https://example.com"
+                                        value={website} onChange={(e) => setWebsite(e.target.value)}
+                                        className="w-full px-4 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="block text-sm font-medium text-muted-foreground">Affinity Link</label>
+                                    <input
+                                        type="url"
+                                        placeholder="https://affinity.co/..."
+                                        value={affinityLink} onChange={(e) => setAffinityLink(e.target.value)}
+                                        className="w-full px-4 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
                                     <label className="block text-sm font-medium text-muted-foreground">Category</label>
                                     <select
                                         value={category} onChange={(e) => setCategory(e.target.value)}
@@ -293,162 +288,23 @@ export function CompanyCreationModal({ checkIfOpen, onClose, initialData }: Comp
                     )}
 
                     {/* TAB: NOTES */}
+                    {/* TAB: NOTES */}
                     {activeTab === 'notes' && (
-                        <div className="space-y-6 animate-in fade-in slide-in-from-right-2 duration-200">
-                            <div className="space-y-2 pt-2">
-                                <div className="flex justify-between items-end mb-2">
-                                    <div>
-                                        <h3 className="text-sm font-medium text-foreground">Company Notes</h3>
-                                        <p className="text-xs text-muted-foreground">Internal memos, updates, and key information.</p>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-3">
-                                    <textarea
-                                        value={noteContent}
-                                        onChange={(e) => setNoteContent(e.target.value)}
-                                        placeholder="Type your note here..."
-                                        className="w-full h-32 p-4 border border-border rounded-lg text-sm resize-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm"
-                                    />
-                                    <div className="flex justify-end">
-                                        <button
-                                            onClick={addNote}
-                                            disabled={!noteContent.trim()}
-                                            className="bg-primary text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                        >
-                                            {editingNoteId ? 'Update Note' : 'Add Note'}
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {/* Notes List */}
-                                <div className="space-y-3 mt-4">
-                                    {notes.length === 0 ? (
-                                        <div className="text-center py-8 text-gray-400 border-2 border-dashed border-gray-100 rounded-xl">
-                                            <FileText size={24} className="mx-auto mb-2 opacity-50" />
-                                            <p className="text-sm">No notes added yet.</p>
-                                        </div>
-                                    ) : (
-                                        notes.map((note) => (
-                                            <div key={note.id} className="bg-gray-50 p-4 rounded-xl border border-gray-100 group hover:border-gray-200 transition-all">
-                                                <div className="flex justify-between items-start mb-2">
-                                                    <div className="flex items-center gap-2 text-xs text-gray-500">
-                                                        <span className="font-semibold text-gray-700">{note.author}</span>
-                                                        <span>•</span>
-                                                        <span>{note.date}</span>
-                                                    </div>
-                                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <button onClick={() => startEditingNote(note)} className="p-1 hover:bg-white rounded text-gray-400 hover:text-blue-600 transition-colors">
-                                                            <Pencil size={14} />
-                                                        </button>
-                                                        <button onClick={() => deleteNote(note.id)} className="p-1 hover:bg-white rounded text-gray-400 hover:text-red-600 transition-colors">
-                                                            <Trash2 size={14} />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                                <p className="text-sm text-gray-700 whitespace-pre-wrap">{note.content}</p>
-                                            </div>
-                                        ))
-                                    )}
-                                </div>
-                            </div>
-                        </div>
+                        <NotesManager notes={notes} onNotesChange={setNotes} />
                     )}
 
                     {/* TAB: DOCUMENTS */}
                     {activeTab === 'documents' && (
-                        <div className="space-y-4 animate-in fade-in slide-in-from-right-2 duration-200">
-                            <div className="space-y-2 pt-2">
-                                <div className="flex justify-between items-end mb-2">
-                                    <div>
-                                        <h3 className="text-sm font-medium text-foreground">Company Documents</h3>
-                                        <p className="text-xs text-muted-foreground">Legal docs, formation papers, etc.</p>
-                                    </div>
-                                    <span className="text-xs font-normal text-muted-foreground bg-gray-100 px-2 py-1 rounded-full">{documents.length} files attached</span>
-                                </div>
+                        <DocumentsManager documents={documents} onDocumentsChange={setDocuments} />
 
-                                <input
-                                    type="file"
-                                    ref={fileInputRef}
-                                    className="hidden"
-                                    multiple
-                                    onChange={handleFileSelect}
-                                />
-
-                                <div className="space-y-2">
-                                    {/* Upload Area */}
-                                    <div
-                                        onClick={() => fileInputRef.current?.click()}
-                                        className="border-2 border-dashed border-border rounded-md p-8 flex flex-col items-center justify-center text-center hover:bg-gray-50 hover:border-primary/50 transition-all cursor-pointer group"
-                                    >
-                                        <div className="p-3 bg-blue-50 rounded-full mb-3 group-hover:bg-blue-100 transition-colors">
-                                            <Upload size={20} className="text-blue-500 group-hover:text-blue-600" />
-                                        </div>
-                                        <p className="text-sm font-medium text-foreground">Click to upload documents</p>
-                                        <p className="text-xs text-muted-foreground mt-1">PDF, DOCX, Slides (Max 25MB)</p>
-                                    </div>
-
-                                    {/* Document List */}
-                                    {documents.length > 0 && (
-                                        <div className="bg-gray-50 rounded-md border border-border divide-y divide-border overflow-hidden mt-4">
-                                            {documents.map(doc => (
-                                                <div key={doc.id} className="flex items-center justify-between p-3 hover:bg-white transition-colors group">
-                                                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                                                        <div className="p-2 bg-white border border-border rounded-md">
-                                                            <FileText size={16} className="text-blue-600" />
-                                                        </div>
-                                                        {editingDocId === doc.id ? (
-                                                            <div className="flex-1 flex gap-2">
-                                                                <input
-                                                                    type="text"
-                                                                    value={editName}
-                                                                    onChange={(e) => setEditName(e.target.value)}
-                                                                    className="flex-1 px-2 py-1 text-sm border border-primary rounded-sm focus:outline-none"
-                                                                    autoFocus
-                                                                    onKeyDown={(e) => {
-                                                                        if (e.key === 'Enter') saveEdit();
-                                                                        if (e.key === 'Escape') setEditingDocId(null);
-                                                                    }}
-                                                                    onBlur={saveEdit}
-                                                                />
-                                                            </div>
-                                                        ) : (
-                                                            <div className="min-w-0">
-                                                                <p className="text-sm font-medium text-foreground truncate">{doc.name}</p>
-                                                                <p className="text-xs text-muted-foreground">{doc.size} • {new Date().toLocaleDateString()}</p>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <button
-                                                            onClick={() => startEditing(doc)}
-                                                            className="p-1.5 text-muted-foreground hover:text-blue-600 hover:bg-blue-50 rounded-md"
-                                                            title="Rename"
-                                                        >
-                                                            <Pencil size={14} />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => deleteDocument(doc.id)}
-                                                            className="p-1.5 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded-md"
-                                                            title="Delete"
-                                                        >
-                                                            <Trash2 size={14} />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
                     )}
+
                 </div>
 
                 {/* Footer */}
                 <div className="px-6 py-4 border-t border-border flex justify-end items-center bg-gray-50/50">
                     <button
-                        onClick={onClose}
+                        onClick={handleSave}
                         className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm"
                     >
                         {initialData ? 'Save Changes' : 'Create Company'}

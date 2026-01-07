@@ -1,21 +1,21 @@
+"use client";
+
 import { X, ChevronRight, Check, Plus, Trash2, DollarSign, PieChart, FileText, Upload, Pencil, Calendar, Tag, Layers, Hash, Layout, Users, TrendingUp, Activity, ArrowRight, PieChart as PieChartIcon } from "lucide-react";
 import { MOCK_INVESTORS } from "../../lib/constants";
 import { useState, useRef } from "react";
 import { INITIAL_ROUND_LABELS } from "../../lib/constants";
+import { NotesManager, Note } from "../shared/NotesManager";
+import { DocumentsManager, CompanyDocument } from "../shared/DocumentsManager";
 
 interface LogRoundModalProps {
     checkIfOpen: boolean;
     onClose: () => void;
     companyName: string;
+    onSave: (data: any) => void;
+    initialData?: any;
 }
 
-// Types for State Management
-interface CompanyDocument {
-    id: string;
-    name: string;
-    size: string;
-    type: string;
-}
+
 
 interface Allocation {
     id: string;
@@ -25,98 +25,51 @@ interface Allocation {
     ownership: string;
 }
 
-export function LogRoundModal({ checkIfOpen, onClose, companyName }: LogRoundModalProps) {
+export function LogRoundModal({ checkIfOpen, onClose, companyName, onSave, initialData }: LogRoundModalProps) {
     const [activeTab, setActiveTab] = useState<'terms' | 'documents' | 'position' | 'syndicate' | 'notes'>('terms');
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+
 
     // --- STATE: STEP 1 (Round Terms) ---
-    const [roundDate, setRoundDate] = useState("");
-    const [stage, setStage] = useState("");
-    const [capitalRaised, setCapitalRaised] = useState("");
-    const [structure, setStructure] = useState<'Equity' | 'SAFE'>('Equity');
-    const [valuation, setValuation] = useState("");
-    const [valContext, setValContext] = useState<'Pre' | 'Post'>('Post');
-    const [pps, setPps] = useState("");
-    const [valuationCap, setValuationCap] = useState("");
-    const [discount, setDiscount] = useState("");
+    const [roundDate, setRoundDate] = useState(initialData?.roundTerms?.date || "");
+    const [stage, setStage] = useState(initialData?.roundTerms?.stage || "");
+    const [capitalRaised, setCapitalRaised] = useState(initialData?.roundTerms?.capitalRaised || "");
+    const [structure, setStructure] = useState<'Equity' | 'SAFE'>(initialData?.roundTerms?.structure || 'Equity');
+    const [valuation, setValuation] = useState(initialData?.roundTerms?.valuation || "");
+    const [valContext, setValContext] = useState<'Pre' | 'Post'>(initialData?.roundTerms?.valContext || 'Post');
+    const [pps, setPps] = useState(initialData?.roundTerms?.pps || "");
+    const [valuationCap, setValuationCap] = useState(initialData?.roundTerms?.valuationCap || "");
+    const [discount, setDiscount] = useState(initialData?.roundTerms?.discount || "");
 
     // Documents State
-    const [documents, setDocuments] = useState<CompanyDocument[]>([]);
-    const [editingDocId, setEditingDocId] = useState<string | null>(null);
-    const [editName, setEditName] = useState("");
-    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [documents, setDocuments] = useState<CompanyDocument[]>(initialData?.roundTerms?.documents || []);
 
     // Notes State
-    const [notes, setNotes] = useState<{ id: string, content: string, date: string, author: string }[]>([]);
-    const [noteContent, setNoteContent] = useState("");
-    const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+    const [notes, setNotes] = useState<Note[]>(initialData?.notes || []);
 
 
     // --- STATE: STEP 2 (Our Position) ---
-    const [participated, setParticipated] = useState(true);
-    const [allocations, setAllocations] = useState<Allocation[]>([
+    const [participated, setParticipated] = useState(initialData?.position?.participated ?? true);
+    const [allocations, setAllocations] = useState<Allocation[]>(initialData?.position?.allocations || [
         { id: '1', fundId: '', amount: '', shares: '', ownership: '' }
     ]);
-    const [hasProRata, setHasProRata] = useState(false);
+    const [hasProRata, setHasProRata] = useState(initialData?.position?.hasProRata || false);
+    const [hasWarrants, setHasWarrants] = useState(initialData?.position?.hasWarrants || false);
+
+    const [warrantCoverage, setWarrantCoverage] = useState(initialData?.position?.warrantCoverage || "");
+    const [warrantCoverageType, setWarrantCoverageType] = useState<'money' | 'percentage'>(initialData?.position?.warrantCoverageType || 'percentage');
+    const [warrantExpiration, setWarrantExpiration] = useState(initialData?.position?.warrantExpiration || "");
 
     // --- STATE: STEP 3 (Syndicate) ---
-    const [leads, setLeads] = useState<string[]>([]);
-    const [coInvestors, setCoInvestors] = useState<string[]>([]);
+    const [leads, setLeads] = useState<string[]>(initialData?.syndicate?.leads || []);
+    const [coInvestors, setCoInvestors] = useState<string[]>(initialData?.syndicate?.coInvestors || []);
 
 
     // --- HANDLERS ---
 
-    // Notes
-    const addNote = () => {
-        if (!noteContent.trim()) return;
-        if (editingNoteId) {
-            setNotes(notes.map(n => n.id === editingNoteId ? { ...n, content: noteContent } : n));
-            setEditingNoteId(null);
-        } else {
-            const newNote = {
-                id: Math.random().toString(36).substr(2, 9),
-                content: noteContent,
-                date: new Date().toLocaleDateString(),
-                author: "You" // Placeholder
-            };
-            setNotes([newNote, ...notes]);
-        }
-        setNoteContent("");
-    };
 
-    const deleteNote = (id: string) => setNotes(notes.filter(n => n.id !== id));
 
-    const startEditingNote = (note: { id: string, content: string }) => {
-        setEditingNoteId(note.id);
-        setNoteContent(note.content);
-        setActiveTab('notes'); // Ensure we are on the tab
-    };
 
-    // Documents
-    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files.length > 0) {
-            const newDocs: CompanyDocument[] = Array.from(e.target.files).map(file => ({
-                id: Math.random().toString(36).substr(2, 9),
-                name: file.name,
-                size: (file.size / 1024 / 1024).toFixed(2) + " MB",
-                type: file.type
-            }));
-            setDocuments([...documents, ...newDocs]);
-        }
-    };
-
-    const deleteDocument = (id: string) => setDocuments(documents.filter(d => d.id !== id));
-
-    const startEditing = (doc: CompanyDocument) => {
-        setEditingDocId(doc.id);
-        setEditName(doc.name);
-    };
-
-    const saveEdit = () => {
-        if (editingDocId) {
-            setDocuments(documents.map(d => d.id === editingDocId ? { ...d, name: editName } : d));
-            setEditingDocId(null);
-        }
-    };
 
     // Allocations
     const addAllocation = () => setAllocations([...allocations, { id: Math.random().toString(), fundId: '', amount: '', shares: '', ownership: '' }]);
@@ -125,34 +78,46 @@ export function LogRoundModal({ checkIfOpen, onClose, companyName }: LogRoundMod
 
     // Final Save
     const handleLogRound = () => {
+        // Just show the confirmation modal
+        setShowConfirmModal(true);
+    };
+
+    const processFinalSave = () => {
         const payload = {
-            company: companyName,
             roundTerms: {
                 date: roundDate,
                 stage,
                 capitalRaised,
                 structure,
-                valuation: structure === 'Equity' ? valuation : undefined,
-                valContext: structure === 'Equity' ? valContext : undefined,
-                pps: structure === 'Equity' ? pps : undefined,
-                valuationCap: structure === 'SAFE' ? valuationCap : undefined,
-                discount: structure === 'SAFE' ? discount : undefined,
-                documents,
-                notes
+                valuation,
+                valContext,
+                pps,
+                valuationCap,
+                discount,
+                documents: documents || []
             },
-            position: participated ? {
-                participated: true,
-                allocations,
-                hasProRata
-            } : { participated: false },
+            position: {
+                participated,
+                allocations: allocations || [],
+                hasProRata,
+                hasWarrants,
+
+                warrantCoverage,
+                warrantCoverageType,
+                warrantExpiration
+            },
             syndicate: {
-                leads,
-                coInvestors
-            }
+                leads: leads || [],
+                coInvestors: coInvestors || []
+            },
+            notes: notes || []
         };
 
-        console.log("LOGGING ROUND PAYLOAD:", payload);
-        // Here you would typically call an API
+        // Call the parent onSave logic
+        onSave(payload);
+
+        // Close modal
+        setShowConfirmModal(false);
         onClose();
     };
 
@@ -160,9 +125,10 @@ export function LogRoundModal({ checkIfOpen, onClose, companyName }: LogRoundMod
     if (!checkIfOpen) return null;
 
     // Tabs Config
+    // Tabs Config
     const TABS = [
         { id: 'terms', label: 'Round Terms', icon: Layers },
-        { id: 'position', label: 'Our Position', icon: DollarSign },
+        { id: 'position', label: 'R-Squared Position', icon: DollarSign },
         { id: 'syndicate', label: 'Syndicate', icon: Users },
         { id: 'notes', label: 'Notes', icon: FileText, count: notes.length },
         { id: 'documents', label: 'Documents', icon: Layers, count: documents.length }, // Suggestion: Use slightly different icon for Docs vs Notes? Using Layers for now to match old style or check imports
@@ -227,6 +193,11 @@ export function LogRoundModal({ checkIfOpen, onClose, companyName }: LogRoundMod
                             allocations={allocations} addAllocation={addAllocation}
                             removeAllocation={removeAllocation} updateAllocation={updateAllocation}
                             hasProRata={hasProRata} setHasProRata={setHasProRata}
+                            hasWarrants={hasWarrants} setHasWarrants={setHasWarrants}
+                            warrantCoverage={warrantCoverage} setWarrantCoverage={setWarrantCoverage}
+                            warrantCoverageType={warrantCoverageType} setWarrantCoverageType={setWarrantCoverageType}
+                            warrantExpiration={warrantExpiration} setWarrantExpiration={setWarrantExpiration}
+                            structure={structure}
                         />
                     </div>
                     <div className={activeTab === 'syndicate' ? 'block' : 'hidden'}>
@@ -236,29 +207,10 @@ export function LogRoundModal({ checkIfOpen, onClose, companyName }: LogRoundMod
                         />
                     </div>
                     <div className={activeTab === 'notes' ? 'block' : 'hidden'}>
-                        <StepNotes
-                            notes={notes}
-                            noteContent={noteContent}
-                            setNoteContent={setNoteContent}
-                            addNote={addNote}
-                            deleteNote={deleteNote}
-                            startEditingNote={startEditingNote}
-                            editingNoteId={editingNoteId}
-                        />
+                        <NotesManager notes={notes} onNotesChange={setNotes} />
                     </div>
                     <div className={activeTab === 'documents' ? 'block' : 'hidden'}>
-                        <StepDocuments
-                            documents={documents}
-                            fileInputRef={fileInputRef}
-                            handleFileSelect={handleFileSelect}
-                            deleteDocument={deleteDocument}
-                            startEditing={startEditing}
-                            editingDocId={editingDocId}
-                            editName={editName}
-                            setEditName={setEditName}
-                            saveEdit={saveEdit}
-                            setEditingDocId={setEditingDocId}
-                        />
+                        <DocumentsManager documents={documents} onDocumentsChange={setDocuments} />
                     </div>
                 </div>
 
@@ -272,13 +224,33 @@ export function LogRoundModal({ checkIfOpen, onClose, companyName }: LogRoundMod
                     </button>
                     <button
                         onClick={handleLogRound}
-                        className="flex items-center gap-2 px-6 py-2 rounded-md text-sm font-medium bg-primary hover:bg-primary/90 text-white shadow-sm transition-all"
+                        className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm"
                     >
-                        <Check size={16} />
-                        {participated ? 'Log Deal' : 'Log Market Event'}
+                        {initialData ? 'Save Changes' : 'Log Round'} <Check size={16} />
                     </button>
                 </div>
             </div>
+
+            {/* Success Confirmation Modal */}
+            {showConfirmModal && (
+                <div className="absolute inset-0 z-[60] flex items-center justify-center bg-black/10 backdrop-blur-[2px] animate-in fade-in duration-200">
+                    <div className="bg-white rounded-xl shadow-2xl border border-border p-8 w-[360px] text-center transform scale-100 animate-in zoom-in-95 duration-200">
+                        <div className="w-16 h-16 bg-green-50 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm border border-green-100">
+                            <Check size={32} />
+                        </div>
+                        <h3 className="text-xl font-bold text-foreground mb-2">Round Logged Successfully</h3>
+                        <p className="text-sm text-muted-foreground mb-8 leading-relaxed">
+                            The financing round has been recorded to the company ledger and portfolio metrics have been updated.
+                        </p>
+                        <button
+                            onClick={processFinalSave}
+                            className="w-full py-3 bg-gray-900 text-white font-medium rounded-lg hover:bg-gray-800 transition-colors shadow-lg active:scale-[0.98]"
+                        >
+                            Done
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
@@ -356,6 +328,28 @@ function StepRoundTerms(props: any) {
         pps, setPps, valuationCap, setValuationCap, discount, setDiscount,
     } = props;
 
+    // Currency Formatter
+    const handleCurrencyChange = (e: React.ChangeEvent<HTMLInputElement>, setter: (val: string) => void) => {
+        // Remove all non-numeric characters except decimal
+        const rawValue = e.target.value.replace(/,/g, '');
+
+        // Allow empty string to clear input
+        if (rawValue === '') {
+            setter('');
+            return;
+        }
+
+        // Check if valid number (allow decimal point at end)
+        if (!isNaN(Number(rawValue)) || rawValue.endsWith('.')) {
+            // Split integer and decimal parts
+            const parts = rawValue.split('.');
+            // Format integer part with commas
+            parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+            // Rejoin
+            setter(parts.join('.'));
+        }
+    };
+
     return (
         <div className="space-y-8 max-w-2xl mx-auto animate-in fade-in slide-in-from-left-2 duration-200">
             <div className="text-center space-y-1 mb-6">
@@ -398,7 +392,8 @@ function StepRoundTerms(props: any) {
                     <input
                         type="text"
                         placeholder="0.00"
-                        value={capitalRaised} onChange={(e) => setCapitalRaised(e.target.value)}
+                        value={capitalRaised}
+                        onChange={(e) => handleCurrencyChange(e, setCapitalRaised)}
                         className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm font-mono focus:ring-2 focus:ring-purple-100 focus:border-purple-500 transition-all outline-none"
                     />
                 </div>
@@ -436,7 +431,8 @@ function StepRoundTerms(props: any) {
                                 <input
                                     type="text"
                                     placeholder="0.00"
-                                    value={valuation} onChange={(e) => setValuation(e.target.value)}
+                                    value={valuation}
+                                    onChange={(e) => handleCurrencyChange(e, setValuation)}
                                     className="w-full pl-7 pr-4 py-2 border border-purple-200 rounded-md text-sm font-mono focus:ring-purple-500"
                                 />
                             </div>
@@ -466,6 +462,35 @@ function StepRoundTerms(props: any) {
                         </div>
                     </div>
 
+
+                    {/* Valuation Calculation Card */}
+                    {
+                        (valuation && capitalRaised) && (
+                            <div className="bg-white/50 border border-purple-200 rounded-lg p-4 flex items-center justify-between">
+                                <div>
+                                    <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Company Valuation</p>
+                                    <p className="text-xs text-muted-foreground mt-0.5">
+                                        {valContext === 'Pre'
+                                            ? `Pre-Money ($${valuation}) + Raised ($${capitalRaised})`
+                                            : `Entered as Post-Money Valuation`
+                                        }
+                                    </p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-lg font-bold text-gray-900">
+                                        ${(() => {
+                                            const v = parseFloat(valuation.replace(/,/g, '')) || 0;
+                                            const c = parseFloat(capitalRaised.replace(/,/g, '')) || 0;
+                                            const total = valContext === 'Pre' ? v + c : v;
+                                            return total.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+                                        })()}
+                                        {valContext === 'Pre' && (capitalRaised.includes('M') || valuation.includes('M')) ? 'M' : ''}
+                                    </p>
+                                </div>
+                            </div>
+                        )
+                    }
+
                     <div className="space-y-2">
                         <label className="block text-sm font-medium text-foreground">Price Per Share (PPS)</label>
                         <div className="relative">
@@ -473,13 +498,14 @@ function StepRoundTerms(props: any) {
                             <input
                                 type="text"
                                 placeholder="0.0000"
-                                value={pps} onChange={(e) => setPps(e.target.value)}
+                                value={pps}
+                                onChange={(e) => handleCurrencyChange(e, setPps)}
                                 className="w-full pl-7 pr-4 py-2 border border-purple-200 rounded-md text-sm font-mono focus:ring-purple-500"
                             />
                         </div>
                         <p className="text-xs text-muted-foreground">Driver for portfolio valuation engine.</p>
                     </div>
-                </div>
+                </div >
             )}
 
             {/* 3. Conditional Logic: SAFE */}
@@ -493,7 +519,8 @@ function StepRoundTerms(props: any) {
                                 <input
                                     type="text"
                                     placeholder="No Cap"
-                                    value={valuationCap} onChange={(e) => setValuationCap(e.target.value)}
+                                    value={valuationCap}
+                                    onChange={(e) => handleCurrencyChange(e, setValuationCap)}
                                     className="w-full pl-7 pr-4 py-2 border border-purple-200 rounded-md text-sm font-mono focus:ring-purple-500"
                                 />
                             </div>
@@ -517,101 +544,7 @@ function StepRoundTerms(props: any) {
     )
 }
 
-function StepDocuments(props: any) {
-    const { documents, fileInputRef, handleFileSelect, deleteDocument, startEditing, editingDocId, editName, setEditName, saveEdit, setEditingDocId } = props;
 
-    return (
-        <div className="space-y-6 max-w-2xl mx-auto animate-in fade-in slide-in-from-right-2 duration-200">
-            <div className="text-center space-y-1 mb-6">
-                <h3 className="text-lg font-semibold text-foreground">Round Documents</h3>
-                <p className="text-sm text-muted-foreground">Attach signed term sheets, definitive docs, and side letters.</p>
-            </div>
-
-            <div className="space-y-3 pt-4">
-                <div className="flex justify-between items-end">
-                    <div>
-                        <h4 className="text-sm font-medium text-foreground">Attachments</h4>
-                    </div>
-                    <span className="text-xs text-muted-foreground bg-gray-100 px-2 py-1 rounded-full">{documents.length} files attached</span>
-                </div>
-
-                <input
-                    type="file"
-                    ref={fileInputRef}
-                    className="hidden"
-                    multiple
-                    onChange={handleFileSelect}
-                />
-
-                <div className="space-y-3">
-                    {/* Upload Area */}
-                    <div
-                        onClick={() => fileInputRef.current?.click()}
-                        className="border-2 border-dashed border-border rounded-lg p-8 flex flex-col items-center justify-center text-center hover:bg-gray-50 hover:border-purple-300 transition-all cursor-pointer group"
-                    >
-                        <div className="p-3 bg-purple-50 rounded-full mb-3 group-hover:bg-purple-100 transition-colors text-purple-600">
-                            <Upload size={24} />
-                        </div>
-                        <p className="text-sm font-medium text-foreground">Click to upload documents</p>
-                        <p className="text-xs text-muted-foreground mt-1">PDF, DOCX, XLSX (Max 25MB)</p>
-                    </div>
-
-                    {/* Document List */}
-                    {documents.length > 0 && (
-                        <div className="bg-gray-50 rounded-md border border-border divide-y divide-border overflow-hidden">
-                            {documents.map((doc: CompanyDocument) => (
-                                <div key={doc.id} className="flex items-center justify-between p-3 hover:bg-white transition-colors group">
-                                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                                        <div className="p-2 bg-white border border-border rounded-md">
-                                            <FileText size={16} className="text-purple-600" />
-                                        </div>
-                                        {editingDocId === doc.id ? (
-                                            <div className="flex-1 flex gap-2">
-                                                <input
-                                                    type="text"
-                                                    value={editName}
-                                                    onChange={(e) => setEditName(e.target.value)}
-                                                    className="flex-1 px-2 py-1 text-sm border border-primary rounded-sm focus:outline-none"
-                                                    autoFocus
-                                                    onKeyDown={(e) => {
-                                                        if (e.key === 'Enter') saveEdit();
-                                                        if (e.key === 'Escape') setEditingDocId(null);
-                                                    }}
-                                                    onBlur={saveEdit}
-                                                />
-                                            </div>
-                                        ) : (
-                                            <div className="min-w-0">
-                                                <p className="text-sm font-medium text-foreground truncate">{doc.name}</p>
-                                                <p className="text-xs text-muted-foreground">{doc.size} • {new Date().toLocaleDateString()}</p>
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button
-                                            onClick={() => startEditing(doc)}
-                                            className="p-1.5 text-muted-foreground hover:text-blue-600 hover:bg-blue-50 rounded-md"
-                                            title="Rename"
-                                        >
-                                            <Pencil size={14} />
-                                        </button>
-                                        <button
-                                            onClick={() => deleteDocument(doc.id)}
-                                            className="p-1.5 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded-md"
-                                            title="Delete"
-                                        >
-                                            <Trash2 size={14} />
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-            </div>
-        </div>
-    )
-}
 
 interface StepPositionProps {
     participated: boolean;
@@ -622,17 +555,43 @@ interface StepPositionProps {
     updateAllocation: (id: string, field: keyof Allocation, value: string) => void;
     hasProRata: boolean;
     setHasProRata: (v: boolean) => void;
+    // Warrants
+    hasWarrants: boolean;
+    setHasWarrants: (v: boolean) => void;
+    warrantCoverage: string;
+    setWarrantCoverage: (v: string) => void;
+    warrantCoverageType: 'money' | 'percentage';
+    setWarrantCoverageType: (v: 'money' | 'percentage') => void;
+    warrantExpiration: string;
+    setWarrantExpiration: (v: string) => void;
+    structure: string;
 }
 
-function StepPosition({ participated, setParticipated, allocations, addAllocation, removeAllocation, updateAllocation, hasProRata, setHasProRata }: StepPositionProps) {
-    // Calculate Totals safely
-    const totalInvested = allocations.reduce((sum: number, a: Allocation) => sum + (parseFloat(a.amount) || 0), 0);
-    const totalShares = allocations.reduce((sum: number, a: Allocation) => sum + (parseFloat(a.shares) || 0), 0);
+function StepPosition({ participated, setParticipated, allocations, addAllocation, removeAllocation, updateAllocation, hasProRata, setHasProRata, hasWarrants, setHasWarrants, warrantCoverage, setWarrantCoverage, warrantCoverageType, setWarrantCoverageType, warrantExpiration, setWarrantExpiration, structure }: StepPositionProps) {
+
+
+    const handleAllocationChange = (id: string, field: keyof Allocation, value: string) => {
+        // Format if Amount or Shares
+        let formatted = value;
+        if (field === 'amount' || field === 'shares') {
+            const raw = value.replace(/,/g, '');
+            if (raw === '') {
+                formatted = '';
+            } else if (!isNaN(Number(raw)) || raw.endsWith('.')) {
+                const parts = raw.split('.');
+                parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+                formatted = parts.join('.');
+            } else {
+                return; // Invalid char, ignore
+            }
+        }
+        updateAllocation(id, field, formatted);
+    };
 
     return (
         <div className="space-y-6">
             <div className="text-center space-y-1 mb-2">
-                <h3 className="text-lg font-semibold text-foreground">Our Participation</h3>
+                <h3 className="text-lg font-semibold text-foreground">R-Squared Participation</h3>
                 <p className="text-sm text-muted-foreground">Record specific capital deployment from your Funds.</p>
             </div>
 
@@ -643,11 +602,11 @@ function StepPosition({ participated, setParticipated, allocations, addAllocatio
                         <DollarSign size={20} />
                     </div>
                     <div>
-                        <p className="text-sm font-medium text-foreground">Did we invest in this round?</p>
-                        <p className="text-xs text-muted-foreground">Toggle off to log as a market event only.</p>
+                        <p className="text-sm font-medium text-foreground">Did R-Squared Ventures invest in the round?</p>
+
                     </div>
                 </div>
-                <div className="relative inline-block w-12 h-6 transition duration-200 ease-in-out rounded-full cursor-pointer">
+                <label htmlFor="participated" className="relative inline-block w-12 h-6 transition duration-200 ease-in-out rounded-full cursor-pointer">
                     <input
                         type="checkbox"
                         id="participated"
@@ -655,12 +614,9 @@ function StepPosition({ participated, setParticipated, allocations, addAllocatio
                         onChange={(e) => setParticipated(e.target.checked)}
                         className="peer sr-only"
                     />
-                    <label
-                        htmlFor="participated"
-                        className="block h-6 overflow-hidden rounded-full bg-gray-300 cursor-pointer peer-checked:bg-amber-500 transition-colors"
-                    ></label>
+                    <div className="block h-6 overflow-hidden rounded-full bg-gray-300 peer-checked:bg-amber-500 transition-colors"></div>
                     <div className="absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform peer-checked:translate-x-6"></div>
-                </div>
+                </label>
             </div>
 
             {participated && (
@@ -673,7 +629,9 @@ function StepPosition({ participated, setParticipated, allocations, addAllocatio
                                 <tr>
                                     <th className="px-4 py-2 text-left font-medium text-muted-foreground text-xs uppercase">Fund</th>
                                     <th className="px-4 py-2 text-left font-medium text-muted-foreground text-xs uppercase w-32">Amount</th>
-                                    <th className="px-4 py-2 text-left font-medium text-muted-foreground text-xs uppercase w-32">Shares</th>
+                                    {structure !== 'SAFE' && (
+                                        <th className="px-4 py-2 text-left font-medium text-muted-foreground text-xs uppercase w-32">Shares</th>
+                                    )}
                                     <th className="px-4 py-2 text-left font-medium text-muted-foreground text-xs uppercase w-24">Own %</th>
                                     <th className="w-10"></th>
                                 </tr>
@@ -701,27 +659,32 @@ function StepPosition({ participated, setParticipated, allocations, addAllocatio
                                                     placeholder="0.00"
                                                     className="w-full pl-5 px-2 py-1.5 border border-border rounded text-sm font-mono focus:ring-1 focus:ring-amber-500"
                                                     value={alloc.amount}
-                                                    onChange={(e) => updateAllocation(alloc.id, 'amount', e.target.value)}
+                                                    onChange={(e) => handleAllocationChange(alloc.id, 'amount', e.target.value)}
                                                 />
                                             </div>
                                         </td>
+                                        {structure !== 'SAFE' && (
+                                            <td className="p-2">
+                                                <input
+                                                    type="text"
+                                                    placeholder="0"
+                                                    className="w-full px-2 py-1.5 border border-border rounded text-sm font-mono focus:ring-1 focus:ring-amber-500"
+                                                    value={alloc.shares}
+                                                    onChange={(e) => handleAllocationChange(alloc.id, 'shares', e.target.value)}
+                                                />
+                                            </td>
+                                        )}
                                         <td className="p-2">
-                                            <input
-                                                type="text"
-                                                placeholder="0"
-                                                className="w-full px-2 py-1.5 border border-border rounded text-sm font-mono focus:ring-1 focus:ring-amber-500"
-                                                value={alloc.shares}
-                                                onChange={(e) => updateAllocation(alloc.id, 'shares', e.target.value)}
-                                            />
-                                        </td>
-                                        <td className="p-2">
-                                            <input
-                                                type="text"
-                                                placeholder="%"
-                                                className="w-full px-2 py-1.5 border border-border rounded text-sm font-mono focus:ring-1 focus:ring-amber-500"
-                                                value={alloc.ownership}
-                                                onChange={(e) => updateAllocation(alloc.id, 'ownership', e.target.value)}
-                                            />
+                                            <div className="relative">
+                                                <input
+                                                    type="text"
+                                                    placeholder="0.0"
+                                                    className="w-full pl-2 pr-5 py-1.5 border border-border rounded text-sm font-mono bg-amber-50 focus:ring-1 focus:ring-amber-500"
+                                                    value={alloc.ownership}
+                                                    onChange={(e) => handleAllocationChange(alloc.id, 'ownership', e.target.value)}
+                                                />
+                                                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">%</span>
+                                            </div>
                                         </td>
                                         <td className="p-2 text-center">
                                             {allocations.length > 1 && (
@@ -748,26 +711,77 @@ function StepPosition({ participated, setParticipated, allocations, addAllocatio
                         </div>
                     </div>
 
-                    {/* Allocation Summary (Footer) */}
-                    <div className="grid grid-cols-2 gap-4 pt-2">
-                        <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-100/60 p-5 rounded-xl flex items-center justify-between shadow-sm">
-                            <div className="flex flex-col">
-                                <span className="text-xs font-semibold text-amber-600 uppercase tracking-wider">Total Invested</span>
-                                <span className="text-xs text-amber-500/80 mt-0.5">Capital Deployed</span>
-                            </div>
-                            <span className="text-2xl font-bold text-gray-900 font-mono tracking-tight">
-                                ${totalInvested.toLocaleString()}
-                            </span>
+
+
+
+                    {/* Warrants Section */}
+                    <div className="pt-2 pb-2">
+                        <div className="flex items-center gap-2 mb-2">
+                            <input
+                                type="checkbox"
+                                id="warrants"
+                                checked={hasWarrants}
+                                onChange={(e) => setHasWarrants(e.target.checked)}
+                                className="w-4 h-4 text-amber-600 border-border rounded focus:ring-primary"
+                            />
+                            <label htmlFor="warrants" className="text-sm font-medium text-foreground cursor-pointer select-none">
+                                Round includes Warrant Coverage
+                            </label>
                         </div>
-                        <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-100/60 p-5 rounded-xl flex items-center justify-between shadow-sm">
-                            <div className="flex flex-col">
-                                <span className="text-xs font-semibold text-amber-600 uppercase tracking-wider">Total Shares</span>
-                                <span className="text-xs text-amber-500/80 mt-0.5">Ownership Units</span>
+
+                        {hasWarrants && (
+                            <div className="ml-6 p-4 bg-gray-50 border border-border rounded-lg grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-1">
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-medium text-muted-foreground">Coverage Amount</label>
+                                    <div className="flex gap-2">
+                                        <div className="relative flex-1">
+                                            {warrantCoverageType === 'money' && (
+                                                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                                                    <DollarSign size={14} />
+                                                </div>
+                                            )}
+                                            <input
+                                                type="text"
+                                                placeholder={warrantCoverageType === 'percentage' ? "20" : "500,000"}
+                                                className={`w-full ${warrantCoverageType === 'money' ? 'pl-8' : 'pl-3'} pr-3 py-2 border border-border rounded-md text-sm`}
+                                                value={warrantCoverage}
+                                                onChange={(e) => {
+                                                    const val = e.target.value;
+                                                    if (warrantCoverageType === 'money') {
+                                                        const raw = val.replace(/,/g, '');
+                                                        if (!isNaN(Number(raw)) || raw === '') {
+                                                            setWarrantCoverage!(raw.replace(/\B(?=(\d{3})+(?!\d))/g, ","));
+                                                        }
+                                                    } else {
+                                                        setWarrantCoverage!(val);
+                                                    }
+                                                }}
+                                            />
+                                            {warrantCoverageType === 'percentage' && (
+                                                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">%</div>
+                                            )}
+                                        </div>
+                                        <select
+                                            value={warrantCoverageType}
+                                            onChange={(e) => setWarrantCoverageType!(e.target.value as any)}
+                                            className="px-3 py-2 bg-white border border-border text-foreground text-sm rounded-md focus:outline-none focus:ring-1 focus:ring-primary w-24"
+                                        >
+                                            <option value="percentage">%</option>
+                                            <option value="money">$</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-medium text-muted-foreground">Expiration Date</label>
+                                    <input
+                                        type="date"
+                                        className="w-full px-3 py-2 border border-border rounded-md text-sm bg-white"
+                                        value={warrantExpiration}
+                                        onChange={(e) => setWarrantExpiration(e.target.value)}
+                                    />
+                                </div>
                             </div>
-                            <span className="text-2xl font-bold text-gray-900 font-mono tracking-tight">
-                                {totalShares.toLocaleString()}
-                            </span>
-                        </div>
+                        )}
                     </div>
 
                     {/* Pro-Rata Rights Toggle (Bottom) */}
@@ -781,7 +795,7 @@ function StepPosition({ participated, setParticipated, allocations, addAllocatio
                                 className="w-4 h-4 text-primary border-border rounded focus:ring-primary"
                             />
                             <label htmlFor="prorata" className="text-sm text-foreground cursor-pointer select-none">
-                                Includes Pro-Rata Rights
+                                Pro-Rata
                             </label>
                         </div>
                     </div>

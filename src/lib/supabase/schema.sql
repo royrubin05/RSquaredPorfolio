@@ -28,7 +28,17 @@ CREATE TABLE companies (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- ... (Investors table remains same)
+-- 3. Investors (The Network CRM)
+CREATE TYPE investor_type AS ENUM ('VC', 'Angel', 'CVC', 'PE', 'Family Office');
+
+CREATE TABLE investors (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name TEXT NOT NULL,
+    type investor_type,
+    website TEXT,
+    contact_email TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
 
 -- 4. FinancingRounds (Market Events)
 CREATE TABLE financing_rounds (
@@ -45,7 +55,35 @@ CREATE TABLE financing_rounds (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- ... (Syndicate & Transactions remain same)
+-- 5. RoundSyndicate (Junction Table)
+CREATE TYPE syndicate_role AS ENUM ('Lead', 'Co-Investor');
+
+CREATE TABLE round_syndicate (
+    round_id UUID REFERENCES financing_rounds(id) ON DELETE CASCADE,
+    investor_id UUID REFERENCES investors(id) ON DELETE CASCADE,
+    role syndicate_role DEFAULT 'Co-Investor',
+    PRIMARY KEY (round_id, investor_id)
+);
+
+-- 6. Transactions (The Ledger)
+CREATE TYPE transaction_type AS ENUM ('Investment', 'Exit');
+CREATE TYPE security_type AS ENUM ('SAFE', 'Equity', 'Note', 'Warrant');
+
+CREATE TABLE transactions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    fund_id UUID REFERENCES funds(id),
+    round_id UUID REFERENCES financing_rounds(id),
+    date DATE NOT NULL,
+    type transaction_type NOT NULL,
+    amount_invested NUMERIC NOT NULL, -- Cost Basis
+    shares_purchased NUMERIC,
+    ownership_percentage NUMERIC, -- Snapshot at time of deal
+    security_type security_type,
+    -- Warrant Specifics
+    warrant_coverage_percentage NUMERIC, -- e.g. 20%
+    warrant_expiration_date DATE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
 
 -- 7. Documents (Data Room)
 CREATE TABLE documents (
