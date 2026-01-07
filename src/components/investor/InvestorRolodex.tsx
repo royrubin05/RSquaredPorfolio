@@ -3,15 +3,10 @@
 import { Search, Mail, ExternalLink, Users, Plus, X, Globe, MapPin } from "lucide-react";
 import { useState } from "react";
 
+import { MOCK_INVESTORS } from "../../lib/constants";
+
 // Mock Data
-const INITIAL_INVESTORS = [
-    { id: 1, name: "Insight Partners", type: "VC", coInvestments: 4, website: "insightpartners.com", contact: "investor@insightpartners.com" },
-    { id: 2, name: "Index Ventures", type: "VC", coInvestments: 3, website: "indexventures.com", contact: "partners@indexventures.com" },
-    { id: 3, name: "Sequoia", type: "VC", coInvestments: 2, website: "sequoiacap.com", contact: "pitch@sequoiacap.com" },
-    { id: 4, name: "Naval Ravikant", type: "Angel", coInvestments: 5, website: "angel.co/naval", contact: "naval@angel.co" },
-    { id: 5, name: "Salesforce Ventures", type: "CVC", coInvestments: 1, website: "salesforce.com/invest", contact: "ventures@salesforce.com" },
-    { id: 6, name: "Andreessen Horowitz", type: "VC", coInvestments: 2, website: "a16z.com", contact: "deals@a16z.com" },
-];
+const INITIAL_INVESTORS = MOCK_INVESTORS;
 
 export function InvestorRolodex() {
     const [investors, setInvestors] = useState(INITIAL_INVESTORS);
@@ -40,7 +35,7 @@ export function InvestorRolodex() {
                 {/* Page Header */}
                 <div className="mb-6 flex justify-between items-end">
                     <div>
-                        <h1 className="text-2xl font-semibold text-foreground tracking-tight">Investor Network</h1>
+                        <h1 className="text-2xl font-semibold text-foreground tracking-tight">Co-Investors</h1>
                         <p className="text-sm text-muted-foreground mt-1">Co-investors and syndicate partners.</p>
                     </div>
                     <button

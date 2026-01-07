@@ -19,8 +19,7 @@ export function AppShell({ children }: AppShellProps) {
         <nav className="flex-1 overflow-y-auto py-6 px-3 space-y-1">
           <NavLink href="/" icon={<Home size={20} />} label="Dashboard" />
           <NavLink href="/companies" icon={<PieChart size={20} />} label="Portfolio Companies" />
-          <NavLink href="/investors" icon={<Users size={20} />} label="Investor Network" />
-          <NavLink href="/ledger" icon={<BookOpen size={20} />} label="General Ledger" />
+          <NavLink href="/investors" icon={<Users size={20} />} label="Co-Investors" />
         </nav>
 
         {/* Footer / Settings */}

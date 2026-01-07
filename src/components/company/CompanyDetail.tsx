@@ -2,7 +2,7 @@
 
 import { Calendar, DollarSign, Users, Plus, TrendingUp, FileText, X } from "lucide-react";
 import { useState } from "react";
-import { DealModal } from "../dashboard/DealModal";
+import { LogRoundModal } from "../dashboard/LogRoundModal";
 
 
 interface Round {
@@ -58,17 +58,16 @@ const ROUNDS: Round[] = [
 ];
 
 export function CompanyDetail() {
-    const [isDealModalOpen, setIsDealModalOpen] = useState(false);
+    const [isLogRoundOpen, setIsLogRoundOpen] = useState(false);
     const [isDocsModalOpen, setIsDocsModalOpen] = useState(false);
     const [selectedRound, setSelectedRound] = useState<Round | null>(null);
 
     return (
         <div className="flex-1 w-full p-6 md:p-8">
-            <DealModal
-                checkIfOpen={isDealModalOpen}
-                onClose={() => setIsDealModalOpen(false)}
-                initialStep={2}
-                initialCompany="Nimble Types"
+            <LogRoundModal
+                checkIfOpen={isLogRoundOpen}
+                onClose={() => setIsLogRoundOpen(false)}
+                companyName="Nimble Types"
             />
             {/* Documents Modal */}
             {isDocsModalOpen && (
@@ -173,7 +172,7 @@ export function CompanyDetail() {
                                 <span>Documents</span>
                             </button>
                             <button
-                                onClick={() => setIsDealModalOpen(true)}
+                                onClick={() => setIsLogRoundOpen(true)}
                                 className="flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-md hover:bg-primary/90 transition-colors shadow-sm"
                             >
                                 <Plus size={16} />

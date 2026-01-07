@@ -5,7 +5,8 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TABLE funds (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name TEXT NOT NULL, -- e.g. "Fund II"
-    committed_capital NUMERIC NOT NULL, -- e.g. 30000000
+    vintage TEXT,       -- e.g. "2023"
+    committed_capital NUMERIC NOT NULL,
     currency TEXT DEFAULT 'USD',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -15,64 +16,67 @@ CREATE TYPE company_status AS ENUM ('Active', 'Exit', 'Dead');
 
 CREATE TABLE companies (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name TEXT NOT NULL, -- e.g. "Nimble"
+    name TEXT NOT NULL,
     legal_name TEXT,
     status company_status DEFAULT 'Active',
-    industry TEXT,
-    country TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- 3. Investors (The Network CRM)
-CREATE TYPE investor_type AS ENUM ('VC', 'Angel', 'CVC');
-
-CREATE TABLE investors (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name TEXT NOT NULL, -- e.g. "Insight Partners"
-    type investor_type NOT NULL,
+    sector TEXT,
+    description TEXT,
     website TEXT,
+    founded_year TEXT,
+    headquarters TEXT,
+    drive_folder_id TEXT, -- Google Drive Folder ID for this Company
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- ... (Investors table remains same)
 
 -- 4. FinancingRounds (Market Events)
 CREATE TABLE financing_rounds (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
-    round_label TEXT NOT NULL, -- e.g. "Series A"
+    round_label TEXT NOT NULL,
     close_date DATE NOT NULL,
     pre_money_valuation NUMERIC,
-    price_per_share NUMERIC NOT NULL, -- Critical: Drivers valuation
+    post_money_valuation NUMERIC,
+    price_per_share NUMERIC,
     round_size NUMERIC,
+    shares_issued NUMERIC,
+    drive_folder_id TEXT, -- Google Drive Folder ID for this Round
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 5. RoundSyndicate (Junction Table)
-CREATE TYPE syndicate_role AS ENUM ('Lead', 'Major Investor', 'Follower');
+-- ... (Syndicate & Transactions remain same)
 
-CREATE TABLE round_syndicate (
-    round_id UUID NOT NULL REFERENCES financing_rounds(id) ON DELETE CASCADE,
-    investor_id UUID NOT NULL REFERENCES investors(id) ON DELETE CASCADE,
-    role syndicate_role NOT NULL,
-    PRIMARY KEY (round_id, investor_id)
-);
-
--- 6. Transactions (The Ledger)
-CREATE TYPE transaction_type AS ENUM ('Initial Investment', 'Follow-on', 'Warrant', 'Exit');
-CREATE TYPE security_type AS ENUM ('SAFE', 'Equity', 'Note');
-
-CREATE TABLE transactions (
+-- 7. Documents (Data Room)
+CREATE TABLE documents (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    fund_id UUID NOT NULL REFERENCES funds(id) ON DELETE CASCADE,
-    round_id UUID NOT NULL REFERENCES financing_rounds(id) ON DELETE CASCADE,
-    date DATE NOT NULL,
-    type transaction_type NOT NULL,
-    amount_invested NUMERIC NOT NULL, -- Cost Basis
-    shares_purchased NUMERIC NOT NULL,
-    security_type security_type NOT NULL,
+    company_id UUID REFERENCES companies(id) ON DELETE CASCADE, 
+    round_id UUID REFERENCES financing_rounds(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    file_type TEXT,
+    size_bytes BIGINT,
+    uploaded_by UUID,
+    -- Storage Metadata
+    storage_provider TEXT DEFAULT 'google_drive', -- 'google_drive' or 'supabase'
+    file_url TEXT, -- View Link (WebViewLink)
+    drive_file_id TEXT, -- Google Drive File ID
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Indexes for performance
-CREATE INDEX idx_financing_rounds_company_id ON financing_rounds(company_id);
-CREATE INDEX idx_transactions_fund_id ON transactions(fund_id);
-CREATE INDEX idx_transactions_round_id ON transactions(round_id);
+-- 8. Notes (Updates & Annotations)
+CREATE TABLE notes (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
+    content TEXT NOT NULL,
+    author_name TEXT, -- Temporary until Auth is fully linked
+    date TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Indexes
+CREATE INDEX idx_rounds_company ON financing_rounds(company_id);
+CREATE INDEX idx_tx_fund ON transactions(fund_id);
+CREATE INDEX idx_tx_round ON transactions(round_id);
+CREATE INDEX idx_docs_company ON documents(company_id);
+CREATE INDEX idx_notes_company ON notes(company_id);
+

@@ -1,7 +1,7 @@
 "use client";
 
-import { X, ChevronRight, Check, Plus } from "lucide-react";
-import { useState } from "react";
+import { X, ChevronRight, Check, Plus, FileText, Trash2, Pencil, Upload } from "lucide-react";
+import { useState, useRef } from "react";
 import { INITIAL_ROUND_LABELS } from "../../lib/constants";
 
 interface DealModalProps {
@@ -19,7 +19,7 @@ export function DealModal({ checkIfOpen, onClose, initialStep = 1, initialCompan
     // Note: In a real app, use useEffect or a key to reset properly
     if (!checkIfOpen) return null;
 
-    const totalSteps = 3;
+    const totalSteps = 4;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
@@ -28,14 +28,17 @@ export function DealModal({ checkIfOpen, onClose, initialStep = 1, initialCompan
                 {/* Header */}
                 <div className="px-6 py-4 border-b border-border flex justify-between items-center bg-gray-50/50">
                     <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-full ${step === 1 ? 'bg-blue-100 text-blue-600' : step === 2 ? 'bg-purple-100 text-purple-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                        <div className={`p-2 rounded-full ${step === 1 ? 'bg-blue-100 text-blue-600' : step === 2 ? 'bg-purple-100 text-purple-600' : step === 3 ? 'bg-amber-100 text-amber-600' : 'bg-emerald-100 text-emerald-600'}`}>
                             {step === 1 && <span className="font-bold text-xs">01</span>}
                             {step === 2 && <span className="font-bold text-xs">02</span>}
                             {step === 3 && <span className="font-bold text-xs">03</span>}
+                            {step === 4 && <span className="font-bold text-xs">04</span>}
                         </div>
                         <div>
                             <h2 className="text-lg font-semibold text-foreground tracking-tight">Log New Deal</h2>
-                            <p className="text-xs text-muted-foreground">Step {step} of {totalSteps}: <span className="font-medium text-foreground">{step === 1 ? 'Target Company' : step === 2 ? 'Deal Parameters' : 'Syndicate'}</span></p>
+                            <p className="text-xs text-muted-foreground">Step {step} of {totalSteps}: <span className="font-medium text-foreground">
+                                {step === 1 ? 'Company Details' : step === 2 ? 'Round Terms' : step === 3 ? 'Our Position' : 'Syndicate'}
+                            </span></p>
                         </div>
                     </div>
                     <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors p-1 hover:bg-gray-100 rounded-md">
@@ -46,8 +49,9 @@ export function DealModal({ checkIfOpen, onClose, initialStep = 1, initialCompan
                 {/* Content */}
                 <div className="p-6 overflow-y-auto flex-1">
                     {step === 1 && <StepCompany initialCompany={initialCompany} />}
-                    {step === 2 && <StepDealStructure participated={participated} setParticipated={setParticipated} />}
-                    {step === 3 && <StepSyndicate />}
+                    {step === 2 && <StepRoundTerms />}
+                    {step === 3 && <StepPosition participated={participated} setParticipated={setParticipated} />}
+                    {step === 4 && <StepSyndicate />}
                 </div>
 
                 {/* Footer */}
@@ -84,233 +88,384 @@ export function DealModal({ checkIfOpen, onClose, initialStep = 1, initialCompan
 }
 
 // Countries List
-const TOP_COUNTRIES = ["United States", "Israel"];
-const OTHER_COUNTRIES = ["United Kingdom", "Canada", "Germany", "France", "Singapore", "Sweden", "Switzerland", "Netherlands", "Australia", "South Korea", "Japan", "Brazil", "India"];
+const TOP_COUNTRIES = ["United States", "Israel", "United Kingdom", "Canada"];
+const OTHER_COUNTRIES = ["Germany", "France", "Singapore", "Sweden", "Switzerland", "Netherlands", "Australia", "South Korea", "Japan", "Brazil", "India"];
+
+interface CompanyDocument {
+    id: string;
+    name: string;
+    size: string;
+    type: string;
+}
 
 function StepCompany({ initialCompany = "" }: { initialCompany?: string }) {
+    const [documents, setDocuments] = useState<CompanyDocument[]>([]);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [editingDocId, setEditingDocId] = useState<string | null>(null);
+    const [editName, setEditName] = useState("");
+
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files.length > 0) {
+            const newDocs: CompanyDocument[] = Array.from(e.target.files).map(file => ({
+                id: Math.random().toString(36).substr(2, 9),
+                name: file.name,
+                size: (file.size / 1024 / 1024).toFixed(2) + " MB",
+                type: file.type
+            }));
+            setDocuments([...documents, ...newDocs]);
+        }
+    };
+
+    const deleteDocument = (id: string) => {
+        setDocuments(documents.filter(d => d.id !== id));
+    };
+
+    const startEditing = (doc: CompanyDocument) => {
+        setEditingDocId(doc.id);
+        setEditName(doc.name);
+    };
+
+    const saveEdit = () => {
+        if (editingDocId) {
+            setDocuments(documents.map(d => d.id === editingDocId ? { ...d, name: editName } : d));
+            setEditingDocId(null);
+        }
+    };
+
     return (
         <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">1. Select Company</h3>
+            <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">1. Company Profile</h3>
 
-            <div className="space-y-2">
-                <label className="block text-sm font-medium text-muted-foreground">Company Name</label>
-                <div className="relative">
-                    <input
-                        autoFocus
-                        type="text"
-                        defaultValue={initialCompany}
-                        placeholder="Company Name"
-                        className="w-full px-4 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+            {/* Basic Info */}
+            <div className="space-y-4">
+                <div className="space-y-2">
+                    <label className="block text-sm font-medium text-muted-foreground">Company Name</label>
+                    <div className="relative">
+                        <input
+                            autoFocus
+                            type="text"
+                            defaultValue={initialCompany}
+                            placeholder="e.g. Acme Corp"
+                            className="w-full px-4 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                        />
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <label className="block text-sm font-medium text-muted-foreground">One-Liner</label>
+                        <input
+                            type="text"
+                            placeholder="e.g. AI-powered supply chain optimization"
+                            className="w-full px-4 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <label className="block text-sm font-medium text-muted-foreground">Category</label>
+                        <select className="w-full px-4 py-2 border border-border rounded-md text-sm bg-white">
+                            <option value="">Select Category...</option>
+                            <option value="AI">Artificial Intelligence</option>
+                            <option value="Fintech">Fintech</option>
+                            <option value="SaaS">B2B SaaS</option>
+                            <option value="Consumer">Consumer</option>
+                            <option value="Health">Healthcare</option>
+                            <option value="Infra">Infrastructure</option>
+                            <option value="Crypto">Crypto / Web3</option>
+                        </select>
+                    </div>
+                </div>
+
+                {/* Legal / Formation */}
+                <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                        <label className="block text-sm font-medium text-muted-foreground">Formation Date</label>
+                        <input type="date" className="w-full px-4 py-2 border border-border rounded-md text-sm bg-white" />
+                    </div>
+                    <div className="space-y-2">
+                        <label className="block text-sm font-medium text-muted-foreground">Country</label>
+                        <select className="w-full px-4 py-2 border border-border rounded-md text-sm bg-white">
+                            <option value="US">United States</option>
+                            <option value="IL">Israel</option>
+                            <option disabled>──────────</option>
+                            {OTHER_COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                    </div>
+                    <div className="space-y-2">
+                        <label className="block text-sm font-medium text-muted-foreground">Jurisdiction</label>
+                        <input
+                            type="text"
+                            placeholder="e.g. Delaware, Cayman"
+                            className="w-full px-4 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                        />
+                    </div>
+                </div>
+
+                <div className="space-y-2">
+                    <label className="block text-sm font-medium text-muted-foreground">Description</label>
+                    <textarea
+                        className="w-full px-4 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary min-h-[80px]"
+                        placeholder="Detailed description of the company business model and traction..."
                     />
                 </div>
-                {!initialCompany && (
-                    <p className="text-xs text-muted-foreground">Start typing to search. If no match found, you can create a new company.</p>
-                )}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            {/* Documents Section */}
+            <div className="space-y-2 pt-2">
+                <label className="block text-sm font-medium text-muted-foreground flex justify-between items-center">
+                    <span>Documents</span>
+                    <span className="text-xs font-normal text-muted-foreground">{documents.length} files attached</span>
+                </label>
+
+                <input
+                    type="file"
+                    ref={fileInputRef}
+                    className="hidden"
+                    multiple
+                    onChange={handleFileSelect}
+                />
+
                 <div className="space-y-2">
-                    <label className="block text-sm font-medium text-muted-foreground">Industry</label>
-                    <select className="w-full px-4 py-2 border border-border rounded-md text-sm bg-white">
-                        <option value="">Select Industry...</option>
-                        <option value="AI">Artificial Intelligence</option>
-                        <option value="Fintech">Fintech</option>
-                        <option value="Security">Cybersecurity</option>
-                        <option value="Health">Healthcare</option>
-                        <option value="Infra">Infrastructure</option>
-                    </select>
-                </div>
-                <div className="space-y-2">
-                    <label className="block text-sm font-medium text-muted-foreground">Country</label>
-                    <select className="w-full px-4 py-2 border border-border rounded-md text-sm bg-white">
-                        <option value="US">United States</option>
-                        <option value="IL">Israel</option>
-                        <option disabled>──────────</option>
-                        {OTHER_COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
+                    {/* Upload Area */}
+                    <div
+                        onClick={() => fileInputRef.current?.click()}
+                        className="border-2 border-dashed border-border rounded-md p-4 flex flex-col items-center justify-center text-center hover:bg-gray-50 hover:border-primary/50 transition-all cursor-pointer group"
+                    >
+                        <div className="p-2 bg-gray-100 rounded-full mb-2 group-hover:bg-white transition-colors">
+                            <Upload size={16} className="text-muted-foreground group-hover:text-primary" />
+                        </div>
+                        <p className="text-sm font-medium text-foreground">Click to upload documents</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">PDF, DOCX, Slides (Max 25MB)</p>
+                    </div>
+
+                    {/* Document List */}
+                    {documents.length > 0 && (
+                        <div className="bg-gray-50 rounded-md border border-border divide-y divide-border overflow-hidden">
+                            {documents.map(doc => (
+                                <div key={doc.id} className="flex items-center justify-between p-3 hover:bg-white transition-colors group">
+                                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                                        <div className="p-2 bg-white border border-border rounded-md">
+                                            <FileText size={16} className="text-blue-600" />
+                                        </div>
+                                        {editingDocId === doc.id ? (
+                                            <div className="flex-1 flex gap-2">
+                                                <input
+                                                    type="text"
+                                                    value={editName}
+                                                    onChange={(e) => setEditName(e.target.value)}
+                                                    className="flex-1 px-2 py-1 text-sm border border-primary rounded-sm focus:outline-none"
+                                                    autoFocus
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') saveEdit();
+                                                        if (e.key === 'Escape') setEditingDocId(null);
+                                                    }}
+                                                    onBlur={saveEdit}
+                                                />
+                                            </div>
+                                        ) : (
+                                            <div className="min-w-0">
+                                                <p className="text-sm font-medium text-foreground truncate">{doc.name}</p>
+                                                <p className="text-xs text-muted-foreground">{doc.size} • {new Date().toLocaleDateString()}</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button
+                                            onClick={() => startEditing(doc)}
+                                            className="p-1.5 text-muted-foreground hover:text-blue-600 hover:bg-blue-50 rounded-md"
+                                            title="Rename"
+                                        >
+                                            <Pencil size={14} />
+                                        </button>
+                                        <button
+                                            onClick={() => deleteDocument(doc.id)}
+                                            className="p-1.5 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded-md"
+                                            title="Delete"
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
     )
 }
 
-function StepDealStructure({ participated, setParticipated }: { participated: boolean; setParticipated: (v: boolean) => void }) {
+function StepRoundTerms() {
     const [roundType, setRoundType] = useState<'Equity' | 'SAFE'>('Equity');
-    const [valType, setValType] = useState<'Pre' | 'Post'>('Post');
-    const [hasProRata, setHasProRata] = useState(false);
 
     return (
         <div className="space-y-6">
             <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-2">
                 <span className="w-1 h-4 bg-purple-500 rounded-full"></span>
-                2. Deal Structure
+                2. Round Terms
             </h3>
 
-            {/* Top Row: Participation & Security Type */}
-            <div className="flex gap-4">
-                <div className="flex-1 flex items-center gap-3 p-3 bg-gray-50 border border-border rounded-md">
-                    <input
-                        type="checkbox"
-                        id="participated"
-                        checked={participated}
-                        onChange={(e) => setParticipated(e.target.checked)}
-                        className="w-4 h-4 text-primary border-border rounded focus:ring-primary"
-                    />
-                    <label htmlFor="participated" className="text-sm text-foreground font-medium cursor-pointer select-none">
-                        We participated
-                    </label>
-                </div>
-
-                <div className="flex-1 flex bg-gray-100 p-1 rounded-md">
-                    <button
-                        onClick={() => setRoundType('Equity')}
-                        className={`flex-1 text-sm font-medium py-1.5 rounded-sm transition-all ${roundType === 'Equity' ? 'bg-white shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-                    >
-                        Priced Round
-                    </button>
-                    <button
-                        onClick={() => setRoundType('SAFE')}
-                        className={`flex-1 text-sm font-medium py-1.5 rounded-sm transition-all ${roundType === 'SAFE' ? 'bg-white shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-                    >
-                        SAFE / Note
-                    </button>
-                </div>
+            {/* Security Type Toggle */}
+            <div className="flex bg-gray-100 p-1 rounded-md mb-6">
+                <button
+                    onClick={() => setRoundType('Equity')}
+                    className={`flex-1 text-sm font-medium py-1.5 rounded-sm transition-all ${roundType === 'Equity' ? 'bg-white shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                    Priced Round
+                </button>
+                <button
+                    onClick={() => setRoundType('SAFE')}
+                    className={`flex-1 text-sm font-medium py-1.5 rounded-sm transition-all ${roundType === 'SAFE' ? 'bg-white shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                    SAFE / Note
+                </button>
             </div>
 
-            <div className={`grid gap-8 divide-x divide-border ${participated ? 'grid-cols-2' : 'grid-cols-1 divide-none'}`}>
+            <div className="max-w-xl space-y-4">
+                <div className="space-y-2">
+                    <label className="block text-xs font-medium text-muted-foreground">Round Label</label>
+                    <select className="w-full px-3 py-2 border border-border rounded-md text-sm bg-white">
+                        <option value="">Select Round...</option>
+                        {[...INITIAL_ROUND_LABELS].sort((a, b) => a.order - b.order).map(label => (
+                            <option key={label.id} value={label.name}>{label.name}</option>
+                        ))}
+                    </select>
+                </div>
 
-                {/* LEFT COLUMN: Round Definition (Global) */}
-                <div className={`space-y-4 ${participated ? 'pr-4' : ''}`}>
-                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Round Terms</h4>
+                <div className="space-y-2">
+                    <label className="block text-xs font-medium text-muted-foreground">Close Date</label>
+                    <input type="date" className="w-full px-3 py-2 border border-border rounded-md text-sm" />
+                </div>
 
-                    <div className="space-y-3">
-                        <div className="space-y-2">
-                            <label className="block text-xs font-medium text-muted-foreground">Round Label</label>
-                            <select className="w-full px-3 py-2 border border-border rounded-md text-sm bg-white">
-                                <option value="">Select Round...</option>
-                                {[...INITIAL_ROUND_LABELS].sort((a, b) => a.order - b.order).map(label => (
-                                    <option key={label.id} value={label.name}>{label.name}</option>
-                                ))}
-                            </select>
+                <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                        <label className="block text-xs font-medium text-muted-foreground">Round Size</label>
+                        <div className="relative">
+                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
+                            <input type="text" placeholder="0.00" className="w-full pl-5 pr-2 py-2 border border-border rounded-md text-sm font-mono" />
                         </div>
-
-                        <div className="space-y-2">
-                            <label className="block text-xs font-medium text-muted-foreground">Close Date</label>
-                            <input type="date" className="w-full px-3 py-2 border border-border rounded-md text-sm" />
+                    </div>
+                    <div className="space-y-2">
+                        <label className="block text-xs font-medium text-muted-foreground">
+                            {roundType === 'Equity' ? 'Post-Money Val' : 'Valuation Cap'}
+                        </label>
+                        <div className="relative">
+                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
+                            <input type="text" placeholder={roundType === 'SAFE' ? "No Cap" : "0.00"} className="w-full pl-5 pr-2 py-2 border border-border rounded-md text-sm font-mono" />
                         </div>
-
-                        <div className="grid grid-cols-2 gap-3">
-                            <div className="space-y-2">
-                                <label className="block text-xs font-medium text-muted-foreground">Round Size</label>
-                                <div className="relative">
-                                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
-                                    <input type="text" placeholder="0.00" className="w-full pl-5 pr-2 py-2 border border-border rounded-md text-sm font-mono" />
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <label className="block text-xs font-medium text-muted-foreground">
-                                    {roundType === 'Equity' ? 'Post-Money Val' : 'Valuation Cap'}
-                                </label>
-                                <div className="relative">
-                                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
-                                    <input type="text" placeholder={roundType === 'SAFE' ? "No Cap" : "0.00"} className="w-full pl-5 pr-2 py-2 border border-border rounded-md text-sm font-mono" />
-                                </div>
-                            </div>
-                        </div>
-
-                        {roundType === 'Equity' ? (
-                            <div className="grid grid-cols-2 gap-3">
-                                <div className="space-y-2">
-                                    <label className="block text-xs font-medium text-muted-foreground">PPS</label>
-                                    <div className="relative">
-                                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
-                                        <input type="text" placeholder="0.000" className="w-full pl-5 pr-2 py-2 border border-border rounded-md text-sm font-mono" />
-                                    </div>
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="block text-xs font-medium text-muted-foreground">Round Shares</label>
-                                    <input type="text" placeholder="0" className="w-full px-3 py-2 border border-border rounded-md text-sm font-mono" />
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-2 gap-3">
-                                <div className="space-y-2">
-                                    <label className="block text-xs font-medium text-muted-foreground">Discount</label>
-                                    <div className="relative">
-                                        <input type="text" placeholder="0" className="w-full pl-3 pr-6 py-2 border border-border rounded-md text-sm font-mono" />
-                                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">%</span>
-                                    </div>
-                                </div>
-                                <div className="space-y-2">
-                                    {/* Spacer to keep alignment if needed, or remove */}
-                                </div>
-                            </div>
-                        )}
                     </div>
                 </div>
 
-                {/* RIGHT COLUMN: Our Investment (Specific) */}
-                {participated && (
-                    <div className="space-y-4 pl-8">
-                        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Our Position</h4>
-
-                        <div className="space-y-3">
-                            <div className="space-y-2">
-                                <label className="block text-xs font-medium text-muted-foreground">Invested From Fund</label>
-                                <select className="w-full px-3 py-2 border border-border rounded-md text-sm bg-white">
-                                    <option>Fund I (Vintage 2020)</option>
-                                    <option>Fund II (Active)</option>
-                                    <option>Fund III (Raising)</option>
-                                </select>
+                {roundType === 'Equity' ? (
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                            <label className="block text-xs font-medium text-muted-foreground">PPS</label>
+                            <div className="relative">
+                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
+                                <input type="text" placeholder="0.000" className="w-full pl-5 pr-2 py-2 border border-border rounded-md text-sm font-mono" />
                             </div>
-
-                            <div className="space-y-2">
-                                <label className="block text-xs font-medium text-muted-foreground">Amount Invested</label>
-                                <div className="relative">
-                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-                                    <input type="text" placeholder="0.00" className="w-full pl-6 pr-4 py-2 border border-border rounded-md text-sm font-bold font-mono text-primary" />
-                                </div>
-                            </div>
-
-                            {roundType === 'Equity' ? (
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div className="space-y-2">
-                                        <label className="block text-xs font-medium text-muted-foreground">Shares Purchased</label>
-                                        <input type="text" placeholder="0" className="w-full px-3 py-2 border border-border rounded-md text-sm font-mono" />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="block text-xs font-medium text-muted-foreground">Ownership %</label>
-                                        <div className="relative">
-                                            <input type="text" placeholder="0.00" className="w-full pl-3 pr-6 py-2 border border-border rounded-md text-sm font-mono bg-gray-50" disabled />
-                                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">%</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="p-3 bg-blue-50 border border-blue-100 rounded-md text-xs text-blue-700">
-                                    Shares will be calculated automatically upon future equity conversion event.
-                                </div>
-                            )}
-
-                            {/* Pro-Rata Rights Toggle (Bottom) */}
-                            <div className="pt-2">
-                                <div className="flex items-center gap-2">
-                                    <input
-                                        type="checkbox"
-                                        id="prorata"
-                                        checked={hasProRata}
-                                        onChange={(e) => setHasProRata(e.target.checked)}
-                                        className="w-4 h-4 text-primary border-border rounded focus:ring-primary"
-                                    />
-                                    <label htmlFor="prorata" className="text-sm text-foreground cursor-pointer select-none">
-                                        Includes Pro-Rata Rights
-                                    </label>
-                                </div>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="block text-xs font-medium text-muted-foreground">Round Shares</label>
+                            <input type="text" placeholder="0" className="w-full px-3 py-2 border border-border rounded-md text-sm font-mono" />
+                        </div>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                            <label className="block text-xs font-medium text-muted-foreground">Discount</label>
+                            <div className="relative">
+                                <input type="text" placeholder="0" className="w-full pl-3 pr-6 py-2 border border-border rounded-md text-sm font-mono" />
+                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">%</span>
                             </div>
                         </div>
                     </div>
                 )}
             </div>
+        </div>
+    )
+}
+
+function StepPosition({ participated, setParticipated }: { participated: boolean; setParticipated: (v: boolean) => void }) {
+    const [hasProRata, setHasProRata] = useState(false);
+
+    return (
+        <div className="space-y-6">
+            <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-2">
+                <span className="w-1 h-4 bg-amber-500 rounded-full"></span>
+                3. Our Position
+            </h3>
+
+            {/* Participation Toggle */}
+            <div className="flex items-center gap-3 p-3 bg-gray-50 border border-border rounded-md">
+                <input
+                    type="checkbox"
+                    id="participated"
+                    checked={participated}
+                    onChange={(e) => setParticipated(e.target.checked)}
+                    className="w-4 h-4 text-primary border-border rounded focus:ring-primary"
+                />
+                <label htmlFor="participated" className="text-sm text-foreground font-medium cursor-pointer select-none">
+                    We participated in this round
+                </label>
+            </div>
+
+            {participated ? (
+                <div className="space-y-4 pl-1 animation-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="space-y-3">
+                        <div className="space-y-2">
+                            <label className="block text-xs font-medium text-muted-foreground">Invested From Fund</label>
+                            <select className="w-full px-3 py-2 border border-border rounded-md text-sm bg-white">
+                                <option>Fund I (Vintage 2020)</option>
+                                <option>Fund II (Active)</option>
+                                <option>Fund III (Raising)</option>
+                            </select>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="block text-xs font-medium text-muted-foreground">Amount Invested</label>
+                            <div className="relative">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                                <input type="text" placeholder="0.00" className="w-full pl-6 pr-4 py-2 border border-border rounded-md text-sm font-bold font-mono text-primary" />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-2">
+                                <label className="block text-xs font-medium text-muted-foreground">Shares Purchased</label>
+                                <input type="text" placeholder="0" className="w-full px-3 py-2 border border-border rounded-md text-sm font-mono" />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="block text-xs font-medium text-muted-foreground">Ownership %</label>
+                                <div className="relative">
+                                    <input type="text" placeholder="0.00" className="w-full pl-3 pr-6 py-2 border border-border rounded-md text-sm font-mono bg-gray-50" disabled />
+                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Pro-Rata Rights Toggle (Bottom) */}
+                        <div className="pt-2">
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="checkbox"
+                                    id="prorata"
+                                    checked={hasProRata}
+                                    onChange={(e) => setHasProRata(e.target.checked)}
+                                    className="w-4 h-4 text-primary border-border rounded focus:ring-primary"
+                                />
+                                <label htmlFor="prorata" className="text-sm text-foreground cursor-pointer select-none">
+                                    Includes Pro-Rata Rights
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            ) : (
+                <div className="p-8 border-2 border-dashed border-border rounded-md flex flex-col items-center text-center">
+                    <p className="text-sm text-muted-foreground">Market Event Only</p>
+                    <p className="text-xs text-muted-foreground mt-1">This round will be logged for valuation purposes but no capital was deployed.</p>
+                </div>
+            )}
         </div>
     )
 }

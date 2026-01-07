@@ -1,31 +1,55 @@
 "use client";
 
-import { ArrowUpRight, Link as LinkIcon, MoreHorizontal, Filter, Plus } from "lucide-react";
+import { ArrowUpRight, Link as LinkIcon, MoreHorizontal, Filter, Plus, Pencil } from "lucide-react";
 import Link from 'next/link';
 import { useState } from "react";
-import { DealModal } from "../dashboard/DealModal";
+import { CompanyCreationModal } from "../dashboard/CompanyCreationModal";
 
 // Mock Data with Fund Associations
 const COMPANIES = [
-    { id: '1', name: "Nimble Types", status: "Active", industry: "AI / Legal", stage: "Series B", invested: 3700000, ownership: "12.5%", funds: ["Fund I", "Fund II"], country: "USA" },
-    { id: '2', name: "Blue Ocean", status: "Active", industry: "Robotics", stage: "Series A", invested: 1500000, ownership: "8.2%", funds: ["Fund I"], country: "Denmark" },
-    { id: '3', name: "Vertex AI", status: "Active", industry: "Infrastructure", stage: "Seed", invested: 1200000, ownership: "15.0%", funds: ["Fund II"], country: "Israel" },
-    { id: '4', name: "Darktrace", status: "Exit", industry: "Cybersecurity", stage: "IPO", invested: 5000000, ownership: "0.0%", funds: ["Fund I"], country: "UK" },
+    { id: '1', name: "Nimble Types", status: "Active", industry: "AI / Legal", stage: "Series B", invested: 3700000, ownership: "12.5%", funds: ["Fund I", "Fund II"], country: "USA", oneLiner: "Legal AI automation platform.", category: "AI" },
+    { id: '2', name: "Blue Ocean", status: "Active", industry: "Robotics", stage: "Series A", invested: 1500000, ownership: "8.2%", funds: ["Fund I"], country: "Denmark", oneLiner: "Autonomous underwater drones.", category: "Infra" },
+    { id: '3', name: "Vertex AI", status: "Active", industry: "Infrastructure", stage: "Seed", invested: 1200000, ownership: "15.0%", funds: ["Fund II"], country: "Israel", oneLiner: "Next-gen GPU orchestration.", category: "AI" },
+    { id: '4', name: "Darktrace", status: "Exit", industry: "Cybersecurity", stage: "IPO", invested: 5000000, ownership: "0.0%", funds: ["Fund I"], country: "UK", oneLiner: "AI-powered cyber defense.", category: "SaaS" },
 ];
 
 const FUNDS = ["All Funds", "Fund I", "Fund II", "Fund III"];
 
 export function CompanyList() {
     const [selectedFund, setSelectedFund] = useState("All Funds");
-    const [isDealModalOpen, setIsDealModalOpen] = useState(false);
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [selectedCompany, setSelectedCompany] = useState<any>(null); // Simplified type for mock
 
     const filteredCompanies = selectedFund === "All Funds"
         ? COMPANIES
         : COMPANIES.filter(c => c.funds.includes(selectedFund));
 
+    const handleCreateNew = () => {
+        setSelectedCompany(null);
+        setIsCreateModalOpen(true);
+    };
+
+    const handleEditCompany = (company: any) => {
+        // Map mock data to modal format if needed, simplistic matching here
+        setSelectedCompany({
+            id: company.id,
+            name: company.name,
+            category: company.category || "AI", // Default for mock
+            country: company.country === "USA" ? "US" : company.country === "Israel" ? "IL" : company.country,
+            oneLiner: company.oneLiner || "",
+            // Other fields blank for mock
+            documents: []
+        });
+        setIsCreateModalOpen(true);
+    };
+
     return (
         <div className="flex-1 w-full p-6 md:p-8">
-            <DealModal checkIfOpen={isDealModalOpen} onClose={() => setIsDealModalOpen(false)} />
+            <CompanyCreationModal
+                checkIfOpen={isCreateModalOpen}
+                onClose={() => setIsCreateModalOpen(false)}
+                initialData={selectedCompany}
+            />
             <div className="w-full mx-auto">
                 {/* Page Header */}
                 <div className="mb-6 flex justify-between items-end">
@@ -36,7 +60,7 @@ export function CompanyList() {
 
                     <div className="flex items-center gap-3">
                         <button
-                            onClick={() => setIsDealModalOpen(true)}
+                            onClick={handleCreateNew}
                             className="flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-md hover:bg-primary/90 transition-colors shadow-sm"
                         >
                             <Plus size={16} />
@@ -93,9 +117,16 @@ export function CompanyList() {
                                         {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(company.invested)}
                                     </td>
                                     <td className="px-6 py-4 text-right font-mono text-muted-foreground">{company.ownership}</td>
-                                    <td className="px-6 py-4 text-right">
-                                        <Link href={`/companies/${company.id}`} className="text-muted-foreground hover:text-primary transition-colors opacity-0 group-hover:opacity-100">
-                                            <ArrowUpRight size={16} />
+                                    <td className="px-6 py-4 text-right flex items-center justify-end gap-2">
+                                        <button
+                                            onClick={() => handleEditCompany(company)}
+                                            className="text-muted-foreground hover:text-primary transition-colors p-1 hover:bg-gray-200 rounded opacity-0 group-hover:opacity-100"
+                                            title="Edit Company Details"
+                                        >
+                                            <Pencil size={14} />
+                                        </button>
+                                        <Link href={`/companies/${company.id}`} className="text-muted-foreground hover:text-primary transition-colors p-1 hover:bg-gray-200 rounded opacity-0 group-hover:opacity-100">
+                                            <ArrowUpRight size={14} />
                                         </Link>
                                     </td>
                                 </tr>
