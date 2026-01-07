@@ -1,6 +1,7 @@
 "use client";
 
-import { Calendar, DollarSign, Users, Plus, TrendingUp, FileText, X, StickyNote } from "lucide-react";
+import { Calendar, DollarSign, Users, Plus, TrendingUp, FileText, X, StickyNote, Trash2 } from "lucide-react";
+import { deleteRound } from "@/app/actions";
 import { useState, useEffect } from "react";
 import { LogRoundModal } from "../dashboard/LogRoundModal";
 import { NotesManager, Note } from "../shared/NotesManager";
@@ -132,21 +133,25 @@ const mapRoundToModalData = (round: Round) => {
     };
 };
 
-export function CompanyDetail() {
+// ... imports
+
+interface CompanyDetailProps {
+    initialData: any; // Typed as any for now to match flexible return, specifically { ...company, rounds: Round[] }
+}
+
+export function CompanyDetail({ initialData }: CompanyDetailProps) {
     const [isLogRoundOpen, setIsLogRoundOpen] = useState(false);
     const [isDocsModalOpen, setIsDocsModalOpen] = useState(false);
     const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
 
-    const [editingRoundData, setEditingRoundData] = useState<any>(null); // For LogRoundModal initialData
+    const [editingRoundData, setEditingRoundData] = useState<any>(null);
 
-    // State for Rounds and Notes
-    const [rounds, setRounds] = useState<Round[]>(INITIAL_ROUNDS);
+    // Initialize with Server Data
+    const [rounds, setRounds] = useState<Round[]>(initialData?.rounds || []);
     const [notes, setNotes] = useState<Note[]>([]);
 
     // Derived Metrics
     const totalRaised = rounds.reduce((sum, r) => {
-        // Parse "15M", "$15,000", etc. Simplified parser for now.
-        // Assuming mock data has 'M' suffix or plain numbers.
         let val = r.capitalRaised?.replace(/[$,]/g, '') || '0';
         let multiplier = 1;
         if (val.includes('M')) {
@@ -160,31 +165,52 @@ export function CompanyDetail() {
     }, 0);
 
     const totalRSquaredInvested = rounds.reduce((sum, r) => sum + (r.rSquaredInvestedAmount || 0), 0);
+    const currentValuation = (() => {
+        const valStr = rounds[0]?.valuation;
+        if (!valStr) return "-";
 
-    // Dynamic Holdings by Fund Calculation
+        // Remove currency symbols and commas if present
+        const valNum = parseFloat(valStr.replace(/[^0-9.-]+/g, ""));
+        if (isNaN(valNum)) return valStr;
+
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD',
+            notation: "compact",
+            maximumFractionDigits: 1
+        }).format(valNum);
+    })();
+    const companyName = initialData?.name || "Unknown Company";
+    const companySector = initialData?.sector || "-";
+    const companyStage = rounds[0]?.round || "-"; // Derived from latest round
+
+    // ... FundHoldings calculation (same as before) ...
+    // Calculate Latest PPS for Implied Value
+    const latestPpsRaw = rounds[0]?.pps;
+    const latestPps = latestPpsRaw ? parseFloat(latestPpsRaw.replace(/[^0-9.-]+/g, "")) : 0;
+
     const fundHoldings = rounds.reduce((acc, round) => {
         if (!round.participated || !round.allocations) return acc;
-
         round.allocations.forEach(alloc => {
             const fundId = alloc.fundId || "Unknown Fund";
             if (!acc[fundId]) {
-                acc[fundId] = {
-                    fundId,
-                    instruments: [],
-                    totalShares: 0,
-                    totalCost: 0,
-                    impliedValue: 0 // Placeholder logic for now, could be same as cost or updated by latest PPS
-                };
+                acc[fundId] = { fundId, instruments: [], totalShares: 0, totalCost: 0, impliedValue: 0 };
             }
-
-            // Clean number parsing
             const sharesMs = parseFloat(alloc.shares?.replace(/,/g, '') || '0');
             const costMs = parseFloat(alloc.amount?.replace(/[$,]/g, '') || '0');
 
-            acc[fundId].totalShares += isNaN(sharesMs) ? 0 : sharesMs;
-            acc[fundId].totalCost += isNaN(costMs) ? 0 : costMs;
+            const validShares = isNaN(sharesMs) ? 0 : sharesMs;
+            const validCost = isNaN(costMs) ? 0 : costMs;
 
-            // Instrument Label logic
+            acc[fundId].totalShares += validShares;
+            acc[fundId].totalCost += validCost;
+
+            // Implied Value = Total Shares * Latest Round PPS
+            // Note: This updates incrementally, but works because we multiply totalShares at the end, 
+            // OR we update it here iteratively? No, iteratively is wrong if PPS differs per round.
+            // We must set impliedValue based on FINAL totalShares.
+            // So we just accumulate Shares here.
+
             const instrumentLabel = round.round.includes('SAFE') ? `SAFE (${round.round})` : `Preferred Equity (${round.round})`;
             if (!acc[fundId].instruments.includes(instrumentLabel)) {
                 acc[fundId].instruments.push(instrumentLabel);
@@ -193,21 +219,23 @@ export function CompanyDetail() {
         return acc;
     }, {} as Record<string, { fundId: string, instruments: string[], totalShares: number, totalCost: number, impliedValue: number }>);
 
-    const holdingsList = Object.values(fundHoldings);
+    // Apply Implied Value Calculation using Latest PPS
+    Object.values(fundHoldings).forEach(holding => {
+        holding.impliedValue = holding.totalShares * (isNaN(latestPps) ? 0 : latestPps);
+    });
+    // ...
 
-    // Latest Valuation (Assuming first in array is latest or we pick max)
-    // Actually INITIAL_ROUNDS are ordered max to min date usually.
-    // Let's take the first round's valuation.
-    const currentValuation = rounds[0]?.valuation || "-";
-
-    // Load from LocalStorage
+    // Load from LocalStorage (Optional: Merge or Override?)
+    // For now, let's prioritize Server Data to fix the "disconnect". 
+    // We can comment out LocalStorage loading to ensure we see DB data.
+    /* 
     useEffect(() => {
-        const savedRounds = localStorage.getItem("company_rounds_nimble_types");
+        const savedRounds = localStorage.getItem(`company_rounds_${companyName}`);
         if (savedRounds) setRounds(JSON.parse(savedRounds));
+    }, [companyName]);
+    */
 
-        const savedNotes = localStorage.getItem("company_notes_nimble_types");
-        if (savedNotes) setNotes(JSON.parse(savedNotes));
-    }, []);
+    // ... (rest of handlers)
 
     // Save Handlers
     // Save Handlers
@@ -259,6 +287,19 @@ export function CompanyDetail() {
         setIsLogRoundOpen(false);
     };
 
+    const handleDeleteRound = async (e: React.MouseEvent, roundId: string) => {
+        e.stopPropagation();
+        if (!confirm("Are you sure you want to delete this round?")) return;
+
+        const result = await deleteRound(roundId);
+        if (result.error) {
+            alert("Error deleting round: " + result.error);
+        } else {
+            setRounds(prev => prev.filter(r => r.id !== roundId));
+            router.refresh();
+        }
+    };
+
     const handleOpenNewRound = () => {
         setEditingRoundData(null); // Ensure clean state for new round
         setIsLogRoundOpen(true);
@@ -276,7 +317,7 @@ export function CompanyDetail() {
     };
 
     return (
-        <div className="flex-1 w-full p-6 md:p-8">
+        <div className="flex-1 w-full p-6 md:p-8 flex flex-col gap-8">
             {isLogRoundOpen && (
                 <LogRoundModal
                     checkIfOpen={isLogRoundOpen}
@@ -356,8 +397,8 @@ export function CompanyDetail() {
                 <div className="space-y-6">
                     <div className="flex justify-between items-start">
                         <div>
-                            <h1 className="text-2xl font-semibold text-foreground tracking-tight">Nimble Types</h1>
-                            <p className="text-sm text-muted-foreground mt-1">Generative AI for Legal Tech • Series B</p>
+                            <h1 className="text-2xl font-semibold text-foreground tracking-tight">{companyName}</h1>
+                            <p className="text-sm text-muted-foreground mt-1">{companySector} • {companyStage}</p>
                         </div>
                         <div className="flex items-center gap-3">
                             <button
@@ -408,7 +449,7 @@ export function CompanyDetail() {
 
             {/* Warrants Alert Card */}
             {rounds.some(r => r.hasWarrants) && (
-                <div className="my-6 bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start justify-between shadow-sm">
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start justify-between shadow-sm">
                     <div className="flex items-start gap-3">
                         <div className="p-2 bg-amber-100 rounded-full text-amber-700 mt-0.5">
                             <FileText size={18} />
@@ -456,45 +497,51 @@ export function CompanyDetail() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
-                            <tr>
-                                <td className="px-6 py-4 text-foreground font-medium align-top">Fund I</td>
-                                <td className="px-6 py-4 align-top space-y-1">
-                                    <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-blue-500"></span> Preferred Equity (Ser A)</div>
-                                    <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-purple-500"></span> SAFE (Pre-Seed)</div>
-                                </td>
-                                <td className="px-6 py-4 text-right font-mono text-muted-foreground align-top space-y-1">
-                                    <div>1,250,000</div>
-                                    <div>$100k (Cap $8M)</div>
-                                </td>
-                                <td className="px-6 py-4 text-right font-mono text-foreground align-top space-y-1">
-                                    <div>$400,000</div>
-                                    <div>$100,000</div>
-                                </td>
-                                <td className="px-6 py-4 text-right font-mono text-foreground align-top space-y-1">
-                                    <div>$2,500,000</div>
-                                    <div>$450,000</div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td className="px-6 py-4 text-foreground font-medium align-top">Fund II</td>
-                                <td className="px-6 py-4 align-top space-y-1">
-                                    <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-blue-500"></span> Preferred Equity (Ser B)</div>
-                                </td>
-                                <td className="px-6 py-4 text-right font-mono text-muted-foreground align-top space-y-1">
-                                    <div>4,500,000</div>
-                                </td>
-                                <td className="px-6 py-4 text-right font-mono text-foreground align-top space-y-1">
-                                    <div>$3,200,000</div>
-                                </td>
-                                <td className="px-6 py-4 text-right font-mono text-foreground align-top space-y-1">
-                                    <div>$9,000,000</div>
-                                </td>
-                            </tr>
-                            <tr className="bg-gray-50/50 font-medium">
-                                <td colSpan={3} className="px-6 py-4 text-foreground text-right uppercase text-xs tracking-wider">Total Net Funding</td>
-                                <td className="px-6 py-4 text-right font-mono text-foreground underline decoration-double decoration-gray-300 underline-offset-4">$3,700,000</td>
-                                <td className="px-6 py-4 text-right font-mono text-foreground underline decoration-double decoration-gray-300 underline-offset-4">$11,950,000</td>
-                            </tr>
+                            {Object.values(fundHoldings).length === 0 ? (
+                                <tr>
+                                    <td colSpan={5} className="px-6 py-8 text-center text-muted-foreground">
+                                        No active holdings recorded.
+                                    </td>
+                                </tr>
+                            ) : (
+                                Object.values(fundHoldings).map((holding) => (
+                                    <tr key={holding.fundId}>
+                                        <td className="px-6 py-4 text-foreground font-medium align-top">{holding.fundId}</td>
+                                        <td className="px-6 py-4 align-top space-y-1">
+                                            {holding.instruments.map((inst, idx) => (
+                                                <div key={idx} className="flex items-center gap-1.5">
+                                                    <span className={`w-2 h-2 rounded-full ${inst.includes('SAFE') ? 'bg-purple-500' : 'bg-blue-500'}`}></span>
+                                                    {inst}
+                                                </div>
+                                            ))}
+                                        </td>
+                                        <td className="px-6 py-4 text-right font-mono text-muted-foreground align-top space-y-1">
+                                            <div>{holding.totalShares.toLocaleString()}</div>
+                                        </td>
+                                        <td className="px-6 py-4 text-right font-mono text-foreground align-top space-y-1">
+                                            <div>{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(holding.totalCost)}</div>
+                                        </td>
+                                        <td className="px-6 py-4 text-right font-mono text-foreground align-top space-y-1">
+                                            <div>{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(holding.impliedValue)}</div>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                            {Object.values(fundHoldings).length > 0 && (
+                                <tr className="bg-gray-50/50 font-medium">
+                                    <td colSpan={3} className="px-6 py-4 text-foreground text-right uppercase text-xs tracking-wider">Total Net Funding</td>
+                                    <td className="px-6 py-4 text-right font-mono text-foreground underline decoration-double decoration-gray-300 underline-offset-4">
+                                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(
+                                            Object.values(fundHoldings).reduce((sum, h) => sum + h.totalCost, 0)
+                                        )}
+                                    </td>
+                                    <td className="px-6 py-4 text-right font-mono text-foreground underline decoration-double decoration-gray-300 underline-offset-4">
+                                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(
+                                            Object.values(fundHoldings).reduce((sum, h) => sum + h.impliedValue, 0)
+                                        )}
+                                    </td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
                 </div>
@@ -514,6 +561,7 @@ export function CompanyDetail() {
                                     amountRaised={round.capitalRaised}
                                     pps={round.pps}
                                     participated={round.participated}
+                                    onDelete={(e) => handleDeleteRound(e, round.id)}
                                 />
                             </div>
                         ))}
@@ -539,7 +587,20 @@ function DocItem({ name, type, size }: { name: string; type: string; size: strin
     )
 }
 
-function RoundEventRow({ round, date, valuation, amountRaised, pps, participated }: { round: string; date: string; valuation: string; amountRaised?: string; pps: string; participated?: boolean }) {
+function RoundEventRow({ round, date, valuation, amountRaised, pps, participated, onDelete }: { round: string; date: string; valuation: string; amountRaised?: string; pps: string; participated?: boolean, onDelete?: (e: React.MouseEvent) => void }) {
+    const formatCurrency = (val: string, type: 'compact' | 'standard' = 'standard') => {
+        if (!val || val === '-') return '-';
+        const num = parseFloat(val.replace(/[^0-9.-]+/g, ""));
+        if (isNaN(num)) return val;
+
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD',
+            notation: type === 'compact' ? 'compact' : 'standard',
+            maximumFractionDigits: type === 'compact' ? 1 : 4
+        }).format(num);
+    };
+
     return (
         <div className={`px-6 py-4 flex items-center justify-between transition-colors cursor-pointer group ${participated ? 'bg-green-50/30 hover:bg-green-50/50' : 'hover:bg-gray-50/50'}`}>
             <div className="flex items-center gap-6">
@@ -550,17 +611,17 @@ function RoundEventRow({ round, date, valuation, amountRaised, pps, participated
 
                 <div className="w-24">
                     <div className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">Raised</div>
-                    <div className="font-mono text-sm text-foreground">{amountRaised || '-'}</div>
+                    <div className="font-mono text-sm text-foreground">{amountRaised ? formatCurrency(amountRaised, 'compact') : '-'}</div>
                 </div>
 
                 <div className="w-24">
                     <div className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">Valuation</div>
-                    <div className="font-mono text-sm text-foreground">{valuation}</div>
+                    <div className="font-mono text-sm text-foreground">{formatCurrency(valuation, 'compact')}</div>
                 </div>
 
                 <div className="w-24">
                     <div className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">PPS</div>
-                    <div className="font-mono text-sm text-foreground">{pps}</div>
+                    <div className="font-mono text-sm text-foreground">{formatCurrency(pps, 'standard')}</div>
                 </div>
 
                 {/* Participation Badge - Artistic */}
@@ -577,6 +638,15 @@ function RoundEventRow({ round, date, valuation, amountRaised, pps, participated
 
             {/* Right side spacer or future actions */}
             <div className="flex items-center gap-4">
+                {onDelete && (
+                    <button
+                        onClick={onDelete}
+                        className="text-muted-foreground hover:text-red-500 transition-colors p-2 rounded-full hover:bg-red-50 opacity-0 group-hover:opacity-100"
+                        title="Delete Round"
+                    >
+                        <Trash2 size={16} />
+                    </button>
+                )}
             </div>
         </div >
     )

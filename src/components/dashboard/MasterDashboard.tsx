@@ -4,7 +4,49 @@ import { TrendingUp, DollarSign, Activity, ChevronRight, PieChart as PieChartIco
 import Link from "next/link";
 import { useState } from "react";
 
-export function MasterDashboard() {
+export type DashboardProps = {
+    kpis: {
+        totalAum: number;
+        capitalDeployed: number;
+        activeCompanies: number;
+    };
+    deployments: {
+        name: string;
+        deployed: number;
+        total: number;
+        vintage?: string;
+        isSpv?: boolean;
+    }[];
+    portfolio: {
+        id: string;
+        name: string;
+        sector: string;
+        invested: number;
+        ownership: number;
+        fundNames: string[];
+    }[];
+};
+
+export function MasterDashboard({ kpis, deployments, portfolio }: DashboardProps) {
+    // Helper to format currency
+    const fmt = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 1, notation: "compact", compactDisplay: "short" }).format(n);
+
+    // Group portfolio by Fund for display
+    const fundsMap = new Map<string, typeof portfolio>();
+    portfolio.forEach(c => {
+        // A company can be in multiple funds, visual dupe is acceptable for "By Fund" list
+        c.fundNames.forEach(fName => {
+            const list = fundsMap.get(fName) || [];
+            list.push(c);
+            fundsMap.set(fName, list);
+        });
+        if (c.fundNames.length === 0) {
+            const list = fundsMap.get('Unassigned') || [];
+            list.push(c);
+            fundsMap.set('Unassigned', list);
+        }
+    });
+
     return (
         <div className="flex-1 w-full p-6 md:p-8 space-y-8">
             <div className="w-full mx-auto">
@@ -20,19 +62,19 @@ export function MasterDashboard() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                     <KpiCard
                         label="Total AUM"
-                        value="$150.0M"
-                        subtext="Across 3 Active Funds & 2 SPVs"
+                        value={fmt(kpis.totalAum)}
+                        subtext="Across Active Funds"
                         icon={<DollarSign size={18} className="text-primary" />}
                     />
                     <KpiCard
                         label="Capital Deployed"
-                        value="$82.5M"
-                        subtext="55% of Committed Capital"
+                        value={fmt(kpis.capitalDeployed)}
+                        subtext={`${((kpis.capitalDeployed / kpis.totalAum) * 100).toFixed(1)}% of Committed Capital`}
                         icon={<TrendingUp size={18} className="text-primary" />}
                     />
                     <KpiCard
                         label="Active Companies"
-                        value="24"
+                        value={kpis.activeCompanies.toString()}
                         subtext="Across all vehicles"
                         icon={<Activity size={18} className="text-primary" />}
                     />
@@ -41,7 +83,7 @@ export function MasterDashboard() {
                 {/* Main Content Grid */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
 
-                    {/* LEFT COLUMN: Capital Deployed & Fund Performance (5 cols) */}
+                    {/* LEFT COLUMN: Capital Deployed & Fund Performance */}
                     <div className="lg:col-span-12 xl:col-span-5 space-y-6">
                         {/* Capital Deployed Chart */}
                         <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden p-6">
@@ -49,18 +91,21 @@ export function MasterDashboard() {
                             <p className="text-xs text-muted-foreground mb-6">Breakdown by investment vehicle.</p>
 
                             <div className="space-y-6">
-                                <DeploymentBar name="Fund I" deployed={25.0} total={25.0} vintage="2020" />
-                                <DeploymentBar name="Fund II" deployed={45.0} total={75.0} vintage="2022" />
-                                <DeploymentBar name="Fund III" deployed={10.0} total={50.0} vintage="2024" />
-                                <DeploymentBar name="SPV: Nimble" deployed={2.5} total={2.5} isSpv />
-                                <DeploymentBar name="SPV: Vertex" deployed={1.2} total={1.2} isSpv />
+                                {deployments.map((d, i) => (
+                                    <DeploymentBar
+                                        key={i}
+                                        name={d.name}
+                                        deployed={d.deployed / 1000000} // props in nominal, component expects M? Let's fix component below actually.
+                                        total={d.total / 1000000}
+                                        vintage={d.vintage}
+                                        isSpv={d.name.includes("SPV")} // Auto-detect SPV for now if flag missing or rely on name
+                                    />
+                                ))}
                             </div>
                         </div>
-
-
                     </div>
 
-                    {/* RIGHT COLUMN: Portfolio by Fund List (7 cols) */}
+                    {/* RIGHT COLUMN: Portfolio by Fund List */}
                     <div className="lg:col-span-12 xl:col-span-7">
                         <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden flex flex-col h-full">
                             <div className="px-6 py-5 border-b border-border bg-gray-50/50 flex justify-between items-center">
@@ -71,27 +116,23 @@ export function MasterDashboard() {
                             </div>
 
                             <div className="divide-y divide-gray-100">
-                                <FundGroup title="Fund I" vintage="2020">
-                                    <CompanyRow name="Acme Corp" sector="SaaS" invested="$5.0M" ownership="12%" />
-                                    <CompanyRow name="Blue Ocean" sector="Robotics" invested="$3.2M" ownership="8%" />
-                                    <CompanyRow name="CloudScale" sector="Infrastructure" invested="$4.5M" ownership="15%" />
-                                </FundGroup>
-
-                                <FundGroup title="Fund II" vintage="2022">
-                                    <CompanyRow name="Nimble Types" sector="AI/ML" invested="$2.5M" ownership="10%" />
-                                    <CompanyRow name="Vertex AI" sector="Deep Tech" invested="$4.0M" ownership="18%" />
-                                    <CompanyRow name="QuickPay" sector="Fintech" invested="$1.5M" ownership="5%" />
-                                    <CompanyRow name="HealthFlow" sector="Digital Health" invested="$2.0M" ownership="7%" />
-                                </FundGroup>
-
-                                <FundGroup title="Fund III" vintage="2024">
-                                    <CompanyRow name="Stealth Mode" sector="Crypto" invested="$1.0M" ownership="3%" />
-                                    <CompanyRow name="NewAge Bio" sector="Biotech" invested="$1.5M" ownership="4%" />
-                                </FundGroup>
-
-                                <FundGroup title="SPVs" isSpv>
-                                    <CompanyRow name="Nimble Types (SPV)" sector="AI/ML" invested="$2.5M" ownership="N/A" />
-                                </FundGroup>
+                                {Array.from(fundsMap.entries()).map(([fundName, companies]) => (
+                                    <FundGroup key={fundName} title={fundName}>
+                                        {companies.map((c, idx) => (
+                                            <CompanyRow
+                                                key={`${c.id}-${idx}`}
+                                                id={c.id}
+                                                name={c.name}
+                                                sector={c.sector}
+                                                invested={fmt(c.invested)}
+                                                ownership={`${c.ownership.toFixed(1)}%`}
+                                            />
+                                        ))}
+                                    </FundGroup>
+                                ))}
+                                {fundsMap.size === 0 && (
+                                    <div className="p-6 text-center text-sm text-muted-foreground">No active investments found.</div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -173,9 +214,9 @@ function FundGroup({ title, vintage, isSpv, children }: { title: string; vintage
     );
 }
 
-function CompanyRow({ name, sector, invested, ownership }: { name: string; sector: string; invested: string; ownership: string }) {
+function CompanyRow({ id, name, sector, invested, ownership }: { id: string; name: string; sector: string; invested: string; ownership: string }) {
     return (
-        <Link href={`/companies/1`} className="flex items-center justify-between px-6 py-3 hover:bg-white border-b border-gray-50 last:border-0 group transition-all">
+        <Link href={`/companies/${id}`} className="flex items-center justify-between px-6 py-3 hover:bg-white border-b border-gray-50 last:border-0 group transition-all">
             <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-gray-200 flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-gray-500 group-hover:bg-primary/10 group-hover:text-primary transition-colors">
                     {name.substring(0, 2).toUpperCase()}

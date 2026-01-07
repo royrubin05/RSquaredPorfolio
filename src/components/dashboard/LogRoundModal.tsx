@@ -646,9 +646,9 @@ function StepPosition({ participated, setParticipated, allocations, addAllocatio
                                                 onChange={(e) => updateAllocation(alloc.id, 'fundId', e.target.value)}
                                             >
                                                 <option value="">Select Fund...</option>
-                                                <option value="fund1">Fund I (Vintage 2020)</option>
-                                                <option value="fund2">Fund II (Active)</option>
-                                                <option value="fund3">Fund III (Raising)</option>
+                                                <option value="Fund I">Fund I (Vintage 2020)</option>
+                                                <option value="Fund II">Fund II (Active)</option>
+                                                <option value="Fund III">Fund III (Raising)</option>
                                             </select>
                                         </td>
                                         <td className="p-2">

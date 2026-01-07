@@ -5,13 +5,14 @@ import { useState, useRef, useEffect } from "react";
 import { NotesManager, Note } from "../shared/NotesManager";
 import { DocumentsManager, CompanyDocument } from "../shared/DocumentsManager";
 
-interface CompanyData {
+export interface CompanyData {
     id?: string;
     name: string;
     website?: string;
     affinityLink?: string;
     category: string;
     country: string;
+    status: string;
     oneLiner: string;
     formationDate?: string;
     jurisdiction?: string;
@@ -24,6 +25,7 @@ interface CompanyCreationModalProps {
     onClose: () => void;
     initialData?: CompanyData | null;
     onSave: (data: CompanyData) => void;
+    availableStatuses?: string[];
 }
 
 // Countries List
@@ -32,7 +34,7 @@ const OTHER_COUNTRIES = ["Germany", "France", "Singapore", "Sweden", "Switzerlan
 
 
 
-export function CompanyCreationModal({ checkIfOpen, onClose, initialData, onSave }: CompanyCreationModalProps) {
+export function CompanyCreationModal({ checkIfOpen, onClose, initialData, onSave, availableStatuses }: CompanyCreationModalProps) {
     const [activeTab, setActiveTab] = useState<'profile' | 'documents' | 'notes'>('profile');
 
     // Form State
@@ -45,6 +47,7 @@ export function CompanyCreationModal({ checkIfOpen, onClose, initialData, onSave
     const [formationDate, setFormationDate] = useState("");
     const [jurisdiction, setJurisdiction] = useState("");
     const [description, setDescription] = useState("");
+    const [status, setStatus] = useState("Active");
 
     // Documents State
     const [documents, setDocuments] = useState<CompanyDocument[]>([]);
@@ -71,6 +74,7 @@ export function CompanyCreationModal({ checkIfOpen, onClose, initialData, onSave
                 setDocuments(initialData.documents || []);
                 // Notes would be loaded here if part of initialData
                 setNotes([]); // Reset notes for now or load if available
+                setStatus(initialData.status || "Active");
                 setActiveTab('profile'); // Always start on profile
             } else {
                 // Reset for new company
@@ -85,6 +89,7 @@ export function CompanyCreationModal({ checkIfOpen, onClose, initialData, onSave
                 setDescription("");
                 setDocuments([]);
                 setNotes([]);
+                setStatus("Active");
                 setActiveTab('profile');
             }
         }
@@ -102,7 +107,8 @@ export function CompanyCreationModal({ checkIfOpen, onClose, initialData, onSave
             affinityLink,
             category,
             country,
-            oneLiner,
+            status,
+            oneLiner: description, // Sync oneLiner to description for now as requested
             formationDate,
             jurisdiction,
             description,
@@ -194,6 +200,18 @@ export function CompanyCreationModal({ checkIfOpen, onClose, initialData, onSave
                                 />
                             </div>
 
+                            <div className="space-y-2">
+                                <label className="block text-sm font-medium text-muted-foreground">Status</label>
+                                <select
+                                    value={status} onChange={(e) => setStatus(e.target.value)}
+                                    className="w-full px-4 py-2 border border-border rounded-md text-sm bg-white"
+                                >
+                                    {(availableStatuses || ['Active', 'Watchlist', 'Exit', 'Shutdown']).map(s => (
+                                        <option key={s} value={s}>{s}</option>
+                                    ))}
+                                </select>
+                            </div>
+
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <label className="block text-sm font-medium text-muted-foreground">Website</label>
@@ -246,14 +264,7 @@ export function CompanyCreationModal({ checkIfOpen, onClose, initialData, onSave
                                 </div>
                             </div>
 
-                            <div className="space-y-2">
-                                <label className="block text-sm font-medium text-muted-foreground">One-Liner</label>
-                                <textarea
-                                    value={oneLiner} onChange={(e) => setOneLiner(e.target.value)}
-                                    className="w-full px-4 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary min-h-[80px]"
-                                    placeholder="Briefly describe what the company does..."
-                                />
-                            </div>
+
 
                             {/* Legal / Formation */}
                             <div className="grid grid-cols-2 gap-4">
@@ -277,7 +288,7 @@ export function CompanyCreationModal({ checkIfOpen, onClose, initialData, onSave
                             </div>
 
                             <div className="space-y-2">
-                                <label className="block text-sm font-medium text-muted-foreground">Description</label>
+                                <label className="block text-sm font-medium text-muted-foreground">What does the company do?</label>
                                 <textarea
                                     value={description} onChange={(e) => setDescription(e.target.value)}
                                     className="w-full px-4 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary min-h-[120px]"

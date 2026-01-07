@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, Mail, ExternalLink, Users, Plus, X, Globe, MapPin } from "lucide-react";
+import { Search, Plus, X, Tag } from "lucide-react";
 import { useState } from "react";
 
 import { MOCK_INVESTORS } from "../../lib/constants";
@@ -15,11 +15,11 @@ export function InvestorRolodex() {
 
     const filteredInvestors = investors.filter(inv =>
         inv.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        inv.type.toLowerCase().includes(searchQuery.toLowerCase())
+        (inv.deals && inv.deals.some(d => d.toLowerCase().includes(searchQuery.toLowerCase())))
     );
 
     const handleAddInvestor = (newInvestor: any) => {
-        setInvestors([...investors, { ...newInvestor, id: Date.now(), coInvestments: 0 }]);
+        setInvestors([...investors, { ...newInvestor, id: Date.now() }]);
         setIsAddModalOpen(false);
     };
 
@@ -53,7 +53,7 @@ export function InvestorRolodex() {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
                         <input
                             type="text"
-                            placeholder="Search investors..."
+                            placeholder="Search investors or deals..."
                             className="w-full pl-10 pr-4 py-2 bg-white border border-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
@@ -66,11 +66,8 @@ export function InvestorRolodex() {
                     <table className="w-full text-sm">
                         <thead className="bg-gray-50/50">
                             <tr className="border-b border-border text-left">
-                                <th className="px-6 py-3 font-medium text-muted-foreground uppercase text-xs tracking-wider">Investor</th>
-                                <th className="px-6 py-3 font-medium text-muted-foreground uppercase text-xs tracking-wider">Type</th>
-                                <th className="px-6 py-3 font-medium text-muted-foreground uppercase text-xs tracking-wider">Co-Investments</th>
-                                <th className="px-6 py-3 font-medium text-muted-foreground uppercase text-xs tracking-wider">Contact</th>
-                                <th className="px-6 py-3 font-medium text-muted-foreground uppercase text-xs tracking-wider text-right">Actions</th>
+                                <th className="px-6 py-3 font-medium text-muted-foreground uppercase text-xs tracking-wider w-1/3">Investor</th>
+                                <th className="px-6 py-3 font-medium text-muted-foreground uppercase text-xs tracking-wider">Deals Together</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border bg-white">
@@ -85,33 +82,17 @@ export function InvestorRolodex() {
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <span className={`text-[10px] px-2 py-0.5 rounded-full border font-medium ${inv.type === 'VC' ? 'bg-blue-50 border-blue-100 text-blue-700' : inv.type === 'Angel' ? 'bg-purple-50 border-purple-100 text-purple-700' : 'bg-green-50 border-green-100 text-green-700'}`}>
-                                            {inv.type}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-1.5 text-muted-foreground">
-                                            <Users size={14} />
-                                            <span>{inv.coInvestments} deals</span>
+                                        <div className="flex flex-wrap gap-2">
+                                            {inv.deals && inv.deals.length > 0 ? (
+                                                inv.deals.map((deal, idx) => (
+                                                    <span key={idx} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
+                                                        {deal}
+                                                    </span>
+                                                ))
+                                            ) : (
+                                                <span className="text-muted-foreground text-xs italic">No common deals recorded</span>
+                                            )}
                                         </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-2 text-muted-foreground">
-                                            <Mail size={14} />
-                                            <a href={`mailto:${inv.contact}`} className="hover:text-primary hover:underline transition-colors">{inv.contact}</a>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 text-right">
-                                        {inv.website && (
-                                            <a
-                                                href={`https://${inv.website}`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="inline-flex items-center gap-1 text-muted-foreground hover:text-primary transition-colors text-xs font-medium"
-                                            >
-                                                Website <ExternalLink size={12} />
-                                            </a>
-                                        )}
                                     </td>
                                 </tr>
                             ))}
@@ -129,9 +110,17 @@ export function InvestorRolodex() {
 }
 
 function AddInvestorModal({ isOpen, onClose, onSave }: { isOpen: boolean; onClose: () => void; onSave: (data: any) => void }) {
-    const [formData, setFormData] = useState({ name: '', type: 'VC', website: '', contact: '' });
+    const [name, setName] = useState('');
+    const [dealsStr, setDealsStr] = useState('');
 
     if (!isOpen) return null;
+
+    const handleSave = () => {
+        const deals = dealsStr.split(',').map(s => s.trim()).filter(Boolean);
+        onSave({ name, deals });
+        setName('');
+        setDealsStr('');
+    };
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
@@ -148,49 +137,19 @@ function AddInvestorModal({ isOpen, onClose, onSave }: { isOpen: boolean; onClos
                             type="text"
                             placeholder="e.g. Lightspeed Venture Partners"
                             className="w-full px-4 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-                            value={formData.name}
-                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
                         />
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <label className="block text-sm font-medium text-muted-foreground">Type</label>
-                            <select
-                                className="w-full px-4 py-2 border border-border rounded-md text-sm bg-white"
-                                value={formData.type}
-                                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                            >
-                                <option value="VC">Venture Capital</option>
-                                <option value="Angel">Angel Investor</option>
-                                <option value="CVC">Corporate VC</option>
-                                <option value="PE">Private Equity</option>
-                                <option value="Family Office">Family Office</option>
-                            </select>
-                        </div>
-                        <div className="space-y-2">
-                            <label className="block text-sm font-medium text-muted-foreground">Website</label>
-                            <div className="relative">
-                                <Globe size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                                <input
-                                    type="text"
-                                    placeholder="example.com"
-                                    className="w-full pl-9 pr-4 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-                                    value={formData.website}
-                                    onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-                                />
-                            </div>
-                        </div>
-                    </div>
                     <div className="space-y-2">
-                        <label className="block text-sm font-medium text-muted-foreground">Primary Contact Email</label>
+                        <label className="block text-sm font-medium text-muted-foreground">Deals (Comma separated)</label>
                         <div className="relative">
-                            <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                            <input
-                                type="email"
-                                placeholder="partners@firm.com"
-                                className="w-full pl-9 pr-4 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-                                value={formData.contact}
-                                onChange={(e) => setFormData({ ...formData, contact: e.target.value })}
+                            <Tag size={14} className="absolute left-3 top-3 text-muted-foreground" />
+                            <textarea
+                                placeholder="e.g. Stripe, Airbnb, Uber"
+                                className="w-full pl-9 pr-4 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary min-h-[80px]"
+                                value={dealsStr}
+                                onChange={(e) => setDealsStr(e.target.value)}
                             />
                         </div>
                     </div>
@@ -198,11 +157,8 @@ function AddInvestorModal({ isOpen, onClose, onSave }: { isOpen: boolean; onClos
                 <div className="px-6 py-4 border-t border-border bg-gray-50/50 flex justify-end gap-2">
                     <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground">Cancel</button>
                     <button
-                        onClick={() => {
-                            onSave(formData);
-                            setFormData({ name: '', type: 'VC', website: '', contact: '' });
-                        }}
-                        disabled={!formData.name}
+                        onClick={handleSave}
+                        disabled={!name}
                         className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
                     >
                         <Plus size={16} />
