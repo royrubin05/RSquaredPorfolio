@@ -154,16 +154,21 @@ export async function deleteRound(id: string) {
 }
 
 export async function getFunds() {
-    const supabase = await createClient();
-    const { data, error } = await supabase.from('funds').select('*').order('name'); // Fetch all fields for Funds page
+    try {
+        const supabase = await createClient();
+        const { data, error } = await supabase.from('funds').select('*').order('name');
 
-    if (error) {
-        const errorDetails = JSON.stringify(error, Object.getOwnPropertyNames(error), 2);
-        console.error('Error fetching funds:', errorDetails);
-        logToFile(`Error fetching funds: ${errorDetails}`);
+        if (error) {
+            const errorDetails = JSON.stringify(error, Object.getOwnPropertyNames(error), 2);
+            console.error('Error fetching funds:', errorDetails);
+            // logToFile(`Error fetching funds: ${errorDetails}`);
+            return [];
+        }
+        return data || [];
+    } catch (err: any) {
+        console.error('Exception fetching funds:', err);
         return [];
     }
-    return data || [];
 }
 
 export async function upsertFund(data: any) {

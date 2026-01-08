@@ -126,108 +126,127 @@ export async function getPortfolioOverview() {
 // ... existing code ...
 
 export async function getCompanyDetails(id: string) {
-    const supabase = await createClient();
+    try {
+        const supabase = await createClient();
 
-    const { data: company } = await supabase
-        .from('companies')
-        .select('*')
-        .eq('id', id)
-        .single();
+        const { data: company, error: companyError } = await supabase
+            .from('companies')
+            .select('*')
+            .eq('id', id)
+            .single();
 
-    if (!company) return null;
+        if (companyError || !company) {
+            console.error('Error fetching company details:', companyError);
+            return null;
+        }
 
-    const { data: rounds } = await supabase
-        .from('financing_rounds')
-        .select(`
-            *,
-            round_syndicate (
-                investor:investors(name, type)
-            )
-        `)
-        .eq('company_id', id)
-        .order('close_date', { ascending: false });
+        const { data: rounds, error: roundsError } = await supabase
+            .from('financing_rounds')
+            .select(`
+                *,
+                round_syndicate (
+                    investor:investors(name, type)
+                )
+            `)
+            .eq('company_id', id)
+            .order('close_date', { ascending: false });
 
-    // Fetch transactions for this company's rounds
-    const { data: transactions } = await supabase
-        .from('transactions')
-        .select(`
-            *,
-            funds(id, name)
-        `)
-        .in('round_id', rounds?.map(r => r.id) || []);
+        if (roundsError) {
+            console.error('Error fetching rounds:', roundsError);
+        }
 
-    // Fetch documents
-    const { data: documents } = await supabase
-        .from('documents')
-        .select('*')
-        .eq('company_id', id);
+        // Fetch transactions for this company's rounds
+        const { data: transactions, error: txError } = await supabase
+            .from('transactions')
+            .select(`
+                *,
+                funds(id, name)
+            `)
+            .in('round_id', rounds?.map(r => r.id) || []);
 
-    // Map to UI Round shape
-    const mappedRounds = rounds?.map(r => {
-        const roundTx = transactions?.filter(t => t.round_id === r.id);
-        const participated = roundTx && roundTx.length > 0;
+        if (txError) {
+            console.error('Error fetching transactions:', txError);
+        }
 
-        const allocations = roundTx?.map(t => {
-            // Normalize 'funds' relation which can be array or object
-            const fundRel = Array.isArray(t.funds) ? t.funds[0] : t.funds;
+        // Fetch documents
+        const { data: documents } = await supabase
+            .from('documents')
+            .select('*')
+            .eq('company_id', id);
+
+        // Map to UI Round shape
+        const mappedRounds = rounds?.map(r => {
+            const roundTx = transactions?.filter(t => t.round_id === r.id);
+            const participated = roundTx && roundTx.length > 0;
+
+            const allocations = roundTx?.map(t => {
+                // Normalize 'funds' relation which can be array or object
+                const fundRel = Array.isArray(t.funds) ? t.funds[0] : t.funds;
+
+                return {
+                    id: t.id,
+                    fundId: fundRel?.id || t.fund_id,
+                    fundName: fundRel?.name || 'Unknown Fund',
+                    amount: t.amount_invested?.toString() || "0",
+                    shares: t.shares_purchased?.toString() || "0",
+                    ownership: t.ownership_percentage?.toString() || "0"
+                };
+            }) || [];
+
+            // Check for Warrants in this round's transactions
+            const warrantTx = roundTx?.find(t => t.security_type === 'Warrant');
+            const hasWarrants = !!warrantTx;
 
             return {
-                id: t.id,
-                fundId: fundRel?.id || t.fund_id,
-                fundName: fundRel?.name || 'Unknown Fund',
-                amount: t.amount_invested?.toString() || "0",
-                shares: t.shares_purchased?.toString() || "0",
-                ownership: t.ownership_percentage?.toString() || "0"
+                id: r.id,
+                round: r.round_label,
+                date: new Date(r.close_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+                valuation: r.post_money_valuation?.toString() || "-",
+                pps: r.price_per_share?.toString() || "-",
+                capitalRaised: r.round_size?.toString() || "-",
+                lead: r.round_syndicate?.[0]?.investor?.name || "-",
+                participated,
+                rSquaredInvestedAmount: roundTx?.reduce((sum, t) => sum + Number(t.amount_invested), 0) || 0,
+                allocations,
+                allocations,
+                hasWarrants,
+                warrantTerms: hasWarrants ? {
+                    coverage: warrantTx?.warrant_coverage_percentage?.toString() || "0",
+                    coverageType: 'percentage',
+                    expirationDate: warrantTx?.warrant_expiration_date || ""
+                } : undefined,
+                documents: [] as { id?: string; name: string; type: string; size: string }[]
             };
         }) || [];
 
-        // Check for Warrants in this round's transactions
-        const warrantTx = roundTx?.find(t => t.security_type === 'Warrant');
-        const hasWarrants = !!warrantTx;
+        // Attach documents
+        mappedRounds.forEach(r => {
+            const roundDocs = documents?.filter(d => d.round_id === r.id) || [];
+            r.documents = roundDocs.map(d => ({
+                id: d.id,
+                name: d.name,
+                type: d.file_type || 'DOC',
+                size: d.size_bytes ? `${(d.size_bytes / 1024).toFixed(0)} KB` : ' - '
+            }));
+        });
 
         return {
-            id: r.id,
-            round: r.round_label,
-            date: new Date(r.close_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
-            valuation: r.post_money_valuation?.toString() || "-",
-            pps: r.price_per_share?.toString() || "-",
-            capitalRaised: r.round_size?.toString() || "-", // Schema missing round_size column? Wait, let's check schema.
-            // checking schema... schema has round_size.
-            lead: r.round_syndicate?.[0]?.investor?.name || "-",
-            participated,
-            rSquaredInvestedAmount: roundTx?.reduce((sum, t) => sum + Number(t.amount_invested), 0) || 0,
-            allocations,
-            hasWarrants,
-            warrantTerms: hasWarrants ? {
-                coverage: warrantTx?.warrant_coverage_percentage?.toString() || "0",
-                coverageType: 'percentage', // Schema assumes percentage for now per column name
-                expirationDate: warrantTx?.warrant_expiration_date || ""
-            } : undefined,
-            documents: [] as { id?: string; name: string; type: string; size: string }[] // Explicit type to allow push/assignment later
+            ...company,
+            rounds: mappedRounds
         };
-    }) || [];
-
-    // Attach documents to rounds if possible, or leave empty if schema doesn't link docs to rounds easily (it does: round_id)
-    // Client UI expects documents array in round object.
-    mappedRounds.forEach(r => {
-        const roundDocs = documents?.filter(d => d.round_id === r.id) || [];
-        r.documents = roundDocs.map(d => ({
-            id: d.id,
-            name: d.name,
-            type: d.file_type || 'DOC',
-            size: d.size_bytes ? `${(d.size_bytes / 1024).toFixed(0)} KB` : ' - '
-        }));
-    });
-
-    return {
-        ...company,
-        rounds: mappedRounds
-    };
+    } catch (err) {
+        console.error('Exception fetching company details:', err);
+        return null; // Return null so the page shows Not Found / Empty instead of 500
+    }
 }
 
 export async function getCompaniesList() {
-    // Re-use logic or optimize for just the list
-    const { portfolio } = await getPortfolioOverview();
-    return portfolio;
+    try {
+        const { portfolio } = await getPortfolioOverview();
+        return portfolio;
+    } catch (err) {
+        console.error('Exception fetching companies list:', err);
+        return [];
+    }
 }
 
