@@ -1,31 +1,37 @@
 "use client";
 
 import { X, ChevronRight, Check, Plus, Trash2, DollarSign, PieChart, FileText, Upload, Pencil, Calendar, Tag, Layers, Hash, Layout, Users, TrendingUp, Activity, ArrowRight, PieChart as PieChartIcon } from "lucide-react";
-import { MOCK_INVESTORS } from "../../lib/constants";
-import { useState, useRef } from "react";
-import { INITIAL_ROUND_LABELS } from "../../lib/constants";
+
+import { useState, useRef, useEffect } from "react";
 import { NotesManager, Note } from "../shared/NotesManager";
+
+const ROUND_LABELS = [
+    { id: 1, name: "Pre-Seed", order: 1 },
+    { id: 2, name: "Seed", order: 2 },
+    { id: 3, name: "Series A", order: 3 },
+    { id: 4, name: "Series B", order: 4 },
+    { id: 5, name: "Series C", order: 5 },
+    { id: 6, name: "Bridge", order: 6 },
+    { id: 7, name: "Growth", order: 7 },
+];
 import { DocumentsManager, CompanyDocument } from "../shared/DocumentsManager";
 
 interface LogRoundModalProps {
-    checkIfOpen: boolean;
+    checkIfOpen?: boolean; // made optional to support strict mode if needed, but keeping implementation
+    isOpen?: boolean; // Added for compatibility with CompanyDetail usage
     onClose: () => void;
     companyName: string;
     onSave: (data: any) => void;
     initialData?: any;
+    funds?: { id: string; name: string }[];
 }
 
+export function LogRoundModal({ checkIfOpen, isOpen, onClose, companyName, onSave, initialData, funds = [] }: LogRoundModalProps) {
+    // Determine openness based on either prop
+    const isModalOpen = isOpen !== undefined ? isOpen : checkIfOpen;
 
-
-interface Allocation {
-    id: string;
-    fundId: string;
-    amount: string;
-    shares: string;
-    ownership: string;
-}
-
-export function LogRoundModal({ checkIfOpen, onClose, companyName, onSave, initialData }: LogRoundModalProps) {
+    if (!isModalOpen) return null;
+    // ... existing logic ...
     const [activeTab, setActiveTab] = useState<'terms' | 'documents' | 'position' | 'syndicate' | 'notes'>('terms');
     const [showConfirmModal, setShowConfirmModal] = useState(false);
 
@@ -129,7 +135,6 @@ export function LogRoundModal({ checkIfOpen, onClose, companyName, onSave, initi
     };
 
 
-    if (!checkIfOpen) return null;
 
     // Tabs Config
     // Tabs Config
@@ -145,11 +150,19 @@ export function LogRoundModal({ checkIfOpen, onClose, companyName, onSave, initi
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm transition-all duration-300">
             <div className="w-[900px] bg-white rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
 
-                {/* Header */}
-                <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-white">
-                    <div>
-                        <h2 className="text-xl font-bold text-gray-900 tracking-tight">Log Financing Round</h2>
-                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mt-0.5">{companyName}</p>
+                {/* Header - Vibrant */}
+                <div className="px-6 py-4 border-b border-border bg-gradient-to-r from-gray-50 via-white to-gray-50 flex justify-between items-center">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-primary/10 rounded-lg text-primary">
+                            <Layers size={20} />
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-bold text-gray-900 tracking-tight">Log Financing Round</h2>
+                            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mt-0.5 flex items-center gap-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-primary/60"></span>
+                                {companyName}
+                            </p>
+                        </div>
                     </div>
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-900 transition-colors p-2 hover:bg-gray-100 rounded-full">
                         <X size={20} />
@@ -214,6 +227,7 @@ export function LogRoundModal({ checkIfOpen, onClose, companyName, onSave, initi
                             setWarrantExpiration={setWarrantExpiration}
                             structure={structure}
                             pps={pps}
+                            funds={funds}
                         />
                     </div>
                     <div className={activeTab === 'syndicate' ? 'block' : 'hidden'}>
@@ -378,23 +392,23 @@ function StepRoundTerms(props: any) {
                 <div className="space-y-2">
                     <label className="block text-sm font-medium text-gray-700">Round Date <span className="text-red-500">*</span></label>
                     <div className="relative group">
-                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-purple-500 transition-colors" size={16} />
+                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-blue-500 transition-colors" size={16} />
                         <input
                             type="date"
                             value={roundDate} onChange={(e) => setRoundDate(e.target.value)}
-                            className="w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-purple-100 focus:border-purple-500 transition-all outline-none"
+                            className="w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none"
                         />
                     </div>
                 </div>
                 <div className="space-y-2">
                     <label className="block text-sm font-medium text-gray-700">Security Class / Legal Name</label>
                     <div className="relative group">
-                        <Tag className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-purple-500 transition-colors" size={16} />
+                        <Tag className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-blue-500 transition-colors" size={16} />
                         <input
                             type="text"
                             placeholder="e.g. Series A-1 Preferred"
                             value={stage} onChange={(e) => setStage(e.target.value)}
-                            className="w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-purple-100 focus:border-purple-500 transition-all outline-none"
+                            className="w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none"
                         />
                     </div>
                     <p className="text-[10px] text-gray-500 pl-1">The exact class name from the legal docs.</p>
@@ -404,13 +418,13 @@ function StepRoundTerms(props: any) {
             <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700">Capital Raised (Total)</label>
                 <div className="relative group">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-purple-500 transition-colors font-medium">$</div>
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-blue-500 transition-colors font-medium">$</div>
                     <input
                         type="text"
                         placeholder="0.00"
                         value={capitalRaised}
                         onChange={(e) => handleCurrencyChange(e, setCapitalRaised)}
-                        className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm font-mono focus:ring-2 focus:ring-purple-100 focus:border-purple-500 transition-all outline-none"
+                        className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm font-mono focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none"
                     />
                 </div>
             </div>
@@ -421,14 +435,14 @@ function StepRoundTerms(props: any) {
                 <div className="flex bg-gray-100/80 p-1.5 rounded-xl border border-gray-200">
                     <button
                         onClick={() => setStructure('Equity')}
-                        className={`flex-1 flex items-center justify-center gap-2 text-sm font-medium py-2.5 rounded-lg transition-all duration-200 ${structure === 'Equity' ? 'bg-white shadow-sm text-purple-700 ring-1 ring-black/5' : 'text-gray-500 hover:text-gray-900 hover:bg-black/5'}`}
+                        className={`flex-1 flex items-center justify-center gap-2 text-sm font-medium py-2.5 rounded-lg transition-all duration-200 ${structure === 'Equity' ? 'bg-white shadow-sm text-blue-700 ring-1 ring-black/5' : 'text-gray-500 hover:text-gray-900 hover:bg-black/5'}`}
                     >
                         <PieChart size={16} />
                         Priced Round (Equity)
                     </button>
                     <button
                         onClick={() => setStructure('SAFE')}
-                        className={`flex-1 flex items-center justify-center gap-2 text-sm font-medium py-2.5 rounded-lg transition-all duration-200 ${structure === 'SAFE' ? 'bg-white shadow-sm text-purple-700 ring-1 ring-black/5' : 'text-gray-500 hover:text-gray-900 hover:bg-black/5'}`}
+                        className={`flex-1 flex items-center justify-center gap-2 text-sm font-medium py-2.5 rounded-lg transition-all duration-200 ${structure === 'SAFE' ? 'bg-white shadow-sm text-blue-700 ring-1 ring-black/5' : 'text-gray-500 hover:text-gray-900 hover:bg-black/5'}`}
                     >
                         <FileText size={16} />
                         SAFE / Convertible
@@ -438,7 +452,7 @@ function StepRoundTerms(props: any) {
 
             {/* 2. Conditional Logic: Priced Round */}
             {structure === 'Equity' && (
-                <div className="bg-purple-50/50 border border-purple-100 rounded-lg p-6 space-y-6 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="bg-blue-50/50 border border-blue-100 rounded-lg p-6 space-y-6 animate-in fade-in slide-in-from-top-2 duration-200">
                     <div className="grid grid-cols-2 gap-6">
                         <div className="space-y-2">
                             <label className="block text-sm font-medium text-foreground">Valuation</label>
@@ -449,7 +463,7 @@ function StepRoundTerms(props: any) {
                                     placeholder="0.00"
                                     value={valuation}
                                     onChange={(e) => handleCurrencyChange(e, setValuation)}
-                                    className="w-full pl-7 pr-4 py-2 border border-purple-200 rounded-md text-sm font-mono focus:ring-purple-500"
+                                    className="w-full pl-7 pr-4 py-2 border border-blue-200 rounded-md text-sm font-mono focus:ring-blue-500"
                                 />
                             </div>
                         </div>
@@ -461,7 +475,7 @@ function StepRoundTerms(props: any) {
                                         type="radio"
                                         checked={valContext === 'Pre'}
                                         onChange={() => setValContext('Pre')}
-                                        className="text-purple-600 focus:ring-purple-500"
+                                        className="text-blue-600 focus:ring-blue-500"
                                     />
                                     <span className="text-sm text-foreground">Pre-Money</span>
                                 </label>
@@ -470,7 +484,7 @@ function StepRoundTerms(props: any) {
                                         type="radio"
                                         checked={valContext === 'Post'}
                                         onChange={() => setValContext('Post')}
-                                        className="text-purple-600 focus:ring-purple-500"
+                                        className="text-blue-600 focus:ring-blue-500"
                                     />
                                     <span className="text-sm text-foreground">Post-Money</span>
                                 </label>
@@ -482,7 +496,7 @@ function StepRoundTerms(props: any) {
                     {/* Valuation Calculation Card */}
                     {
                         (valuation && capitalRaised) && (
-                            <div className="bg-white/50 border border-purple-200 rounded-lg p-4 flex items-center justify-between">
+                            <div className="bg-white/50 border border-blue-200 rounded-lg p-4 flex items-center justify-between">
                                 <div>
                                     <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Company Valuation</p>
                                     <p className="text-xs text-muted-foreground mt-0.5">
@@ -516,7 +530,7 @@ function StepRoundTerms(props: any) {
                                 placeholder="0.0000"
                                 value={pps}
                                 onChange={(e) => handleCurrencyChange(e, setPps)}
-                                className="w-full pl-7 pr-4 py-2 border border-purple-200 rounded-md text-sm font-mono focus:ring-purple-500"
+                                className="w-full pl-7 pr-4 py-2 border border-blue-200 rounded-md text-sm font-mono focus:ring-blue-500"
                             />
                         </div>
                     </div>
@@ -525,7 +539,7 @@ function StepRoundTerms(props: any) {
 
             {/* 3. Conditional Logic: SAFE */}
             {structure === 'SAFE' && (
-                <div className="bg-purple-50/50 border border-purple-100 rounded-lg p-6 space-y-6 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="bg-blue-50/50 border border-blue-100 rounded-lg p-6 space-y-6 animate-in fade-in slide-in-from-top-2 duration-200">
                     <div className="grid grid-cols-2 gap-6">
                         <div className="space-y-2">
                             <label className="block text-sm font-medium text-foreground">Valuation Cap</label>
@@ -536,7 +550,7 @@ function StepRoundTerms(props: any) {
                                     placeholder="No Cap"
                                     value={valuationCap}
                                     onChange={(e) => handleCurrencyChange(e, setValuationCap)}
-                                    className="w-full pl-7 pr-4 py-2 border border-purple-200 rounded-md text-sm font-mono focus:ring-purple-500"
+                                    className="w-full pl-7 pr-4 py-2 border border-blue-200 rounded-md text-sm font-mono focus:ring-blue-500"
                                 />
                             </div>
                         </div>
@@ -547,7 +561,7 @@ function StepRoundTerms(props: any) {
                                     type="text"
                                     placeholder="0"
                                     value={discount} onChange={(e) => setDiscount(e.target.value)}
-                                    className="w-full pl-3 pr-7 py-2 border border-purple-200 rounded-md text-sm font-mono focus:ring-purple-500"
+                                    className="w-full pl-3 pr-7 py-2 border border-blue-200 rounded-md text-sm font-mono focus:ring-blue-500"
                                 />
                                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
                             </div>
@@ -581,9 +595,10 @@ interface StepPositionProps {
     setWarrantExpiration: (v: string) => void;
     structure: string;
     pps: string;
+    funds: { id: string; name: string }[];
 }
 
-function StepPosition({ participated, setParticipated, allocations, addAllocation, removeAllocation, updateAllocation, hasProRata, setHasProRata, hasWarrants, setHasWarrants, warrantCoverage, setWarrantCoverage, warrantCoverageType, setWarrantCoverageType, warrantExpiration, setWarrantExpiration, structure, pps }: StepPositionProps) {
+function StepPosition({ participated, setParticipated, allocations, addAllocation, removeAllocation, updateAllocation, hasProRata, setHasProRata, hasWarrants, setHasWarrants, warrantCoverage, setWarrantCoverage, warrantCoverageType, setWarrantCoverageType, warrantExpiration, setWarrantExpiration, structure, pps, funds }: StepPositionProps) {
 
 
     const handleAllocationChange = (id: string, field: keyof Allocation, value: string) => {
@@ -622,221 +637,219 @@ function StepPosition({ participated, setParticipated, allocations, addAllocatio
     };
 
     return (
-        <div className="space-y-6">
-            <div className="text-center space-y-1 mb-2">
-                <h3 className="text-lg font-semibold text-foreground">R-Squared Participation</h3>
-                <p className="text-sm text-muted-foreground">Record specific capital deployment from your Funds.</p>
+        <div className="space-y-8 max-w-2xl mx-auto animate-in fade-in slide-in-from-right-2 duration-200">
+            <div className="text-center space-y-1 mb-6">
+                <h3 className="text-lg font-semibold text-foreground">R-Squared Position</h3>
             </div>
 
-            {/* Participation Toggle */}
-            <div className="flex items-center justify-between p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                <div className="flex items-center gap-3">
-                    <div className="bg-amber-100 p-2 rounded-full text-amber-600">
-                        <DollarSign size={20} />
-                    </div>
+            <div className="space-y-6">
+                {/* Participation Toggle */}
+                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-100">
                     <div>
-                        <p className="text-sm font-medium text-foreground">Did R-Squared Ventures invest in the round?</p>
-
+                        <div className="font-medium text-gray-900">Did R-Squared participate?</div>
+                        <div className="text-xs text-muted-foreground">Toggle if capital was deployed in this round.</div>
                     </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" checked={participated} onChange={(e) => setParticipated(e.target.checked)} className="sr-only peer" />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-100 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                    </label>
                 </div>
-                <label htmlFor="participated" className="relative inline-block w-12 h-6 transition duration-200 ease-in-out rounded-full cursor-pointer">
-                    <input
-                        type="checkbox"
-                        id="participated"
-                        checked={participated}
-                        onChange={(e) => setParticipated(e.target.checked)}
-                        className="peer sr-only"
-                    />
-                    <div className="block h-6 overflow-hidden rounded-full bg-gray-300 peer-checked:bg-amber-500 transition-colors"></div>
-                    <div className="absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform peer-checked:translate-x-6"></div>
-                </label>
-            </div>
 
-            {participated && (
-                <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                {participated && (
+                    <div className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-200">
+                        {/* Allocations Splitter */}
+                        <div className="space-y-3">
+                            <div className="flex justify-between items-center">
+                                <label className="block text-sm font-medium text-gray-700">Allocations <span className="text-red-500">*</span></label>
+                                <button type="button" onClick={addAllocation} className="text-xs flex items-center gap-1 text-primary hover:text-primary/80 font-medium">
+                                    <Plus size={14} /> Add Fund Split
+                                </button>
+                            </div>
 
-                    {/* Fund Allocation List (Repeater) */}
-                    <div className="bg-gray-50 border border-border rounded-lg overflow-hidden">
-                        <table className="w-full text-sm">
-                            <thead className="bg-gray-100 border-b border-border">
-                                <tr>
-                                    <th className="px-4 py-2 text-left font-medium text-muted-foreground text-xs uppercase">Fund</th>
-                                    <th className="px-4 py-2 text-left font-medium text-muted-foreground text-xs uppercase w-32">Amount</th>
-                                    {structure !== 'SAFE' && (
-                                        <th className="px-4 py-2 text-left font-medium text-muted-foreground text-xs uppercase w-32">Shares</th>
-                                    )}
-                                    <th className="px-4 py-2 text-left font-medium text-muted-foreground text-xs uppercase w-24">Own %</th>
-                                    <th className="w-10"></th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-border">
-                                {allocations.map((alloc: Allocation) => (
-                                    <tr key={alloc.id} className="group bg-white">
-                                        <td className="p-2">
-                                            <select
-                                                className="w-full px-2 py-1.5 border border-border rounded text-sm bg-transparent focus:ring-1 focus:ring-amber-500"
-                                                value={alloc.fundId}
-                                                onChange={(e) => updateAllocation(alloc.id, 'fundId', e.target.value)}
-                                            >
-                                                <option value="">Select Fund...</option>
-                                                <option value="Fund I">Fund I (Vintage 2020)</option>
-                                                <option value="Fund II">Fund II (Active)</option>
-                                                <option value="Fund III">Fund III (Raising)</option>
-                                            </select>
-                                        </td>
-                                        <td className="p-2">
-                                            <div className="relative">
-                                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
-                                                <input
-                                                    type="text"
-                                                    placeholder="0.00"
-                                                    className="w-full pl-5 px-2 py-1.5 border border-border rounded text-sm font-mono focus:ring-1 focus:ring-amber-500"
-                                                    value={alloc.amount}
-                                                    onChange={(e) => handleAllocationChange(alloc.id, 'amount', e.target.value)}
-                                                />
+                            <div className="space-y-3">
+                                {/* Safe map with empty array fallback */}
+                                {(allocations || []).map((allocation, index) => (
+                                    <div key={allocation.id} className="p-4 border border-gray-200 rounded-lg bg-gray-50/50 relative group">
+                                        <div className="flex flex-col gap-4">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                {/* Fund Selector */}
+                                                <div className="space-y-1.5">
+                                                    <label className="text-xs font-medium text-muted-foreground">Fund Vehicle</label>
+                                                    <div className="relative">
+                                                        <select
+                                                            value={allocation.fundId}
+                                                            onChange={(e) => updateAllocation(allocation.id, 'fundId', e.target.value)}
+                                                            className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm bg-white focus:ring-2 focus:ring-blue-100 outline-none appearance-none"
+                                                        >
+                                                            <option value="">Select Fund...</option>
+                                                            {funds && funds.length > 0 ? (
+                                                                funds.map(f => (
+                                                                    <option key={f.id} value={f.id}>{f.name}</option>
+                                                                ))
+                                                            ) : (
+                                                                <option disabled value="">No funds found - Please add a fund in Settings</option>
+                                                            )}
+                                                        </select>
+                                                        <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 rotate-90 text-gray-400 pointer-events-none" size={12} />
+                                                    </div>
+                                                </div>
+
+                                                {/* Investment Amount */}
+                                                <div className="space-y-1.5">
+                                                    <label className="text-xs font-medium text-muted-foreground">Amount Invested</label>
+                                                    <div className="relative">
+                                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">$</span>
+                                                        <input
+                                                            type="text"
+                                                            placeholder="0.00"
+                                                            value={allocation.amount}
+                                                            onChange={(e) => handleAllocationChange(allocation.id, 'amount', e.target.value)}
+                                                            className="w-full pl-6 pr-3 py-2 border border-gray-200 rounded-md text-sm font-mono focus:ring-2 focus:ring-blue-100 outline-none"
+                                                        />
+                                                    </div>
+                                                </div>
                                             </div>
-                                        </td>
-                                        {structure !== 'SAFE' && (
-                                            <td className="p-2">
-                                                <input
-                                                    type="text"
-                                                    placeholder="0"
-                                                    className="w-full px-2 py-1.5 border border-border rounded text-sm font-mono focus:ring-1 focus:ring-amber-500"
-                                                    value={alloc.shares}
-                                                    onChange={(e) => handleAllocationChange(alloc.id, 'shares', e.target.value)}
-                                                />
-                                            </td>
-                                        )}
-                                        <td className="p-2">
-                                            <div className="relative">
-                                                <input
-                                                    type="text"
-                                                    placeholder="0.0"
-                                                    className="w-full pl-2 pr-5 py-1.5 border border-border rounded text-sm font-mono bg-amber-50 focus:ring-1 focus:ring-amber-500"
-                                                    value={alloc.ownership}
-                                                    onChange={(e) => handleAllocationChange(alloc.id, 'ownership', e.target.value)}
-                                                />
-                                                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">%</span>
-                                            </div>
-                                        </td>
-                                        <td className="p-2 text-center">
-                                            {allocations.length > 1 && (
-                                                <button
-                                                    onClick={() => removeAllocation(alloc.id)}
-                                                    className="text-muted-foreground hover:text-red-500 p-1 rounded transition-colors"
-                                                >
-                                                    <Trash2 size={14} />
-                                                </button>
-                                            )}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                        <div className="p-2 bg-gray-50 border-t border-border">
-                            <button
-                                onClick={addAllocation}
-                                className="flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80 px-2 py-1 rounded transition-colors"
-                            >
-                                <Plus size={14} />
-                                Select Fund
-                            </button>
-                        </div>
-                    </div>
 
-
-
-
-                    {/* Warrants Section */}
-                    <div className="pt-2 pb-2">
-                        <div className="flex items-center gap-2 mb-2">
-                            <input
-                                type="checkbox"
-                                id="warrants"
-                                checked={hasWarrants}
-                                onChange={(e) => setHasWarrants(e.target.checked)}
-                                className="w-4 h-4 text-amber-600 border-border rounded focus:ring-primary"
-                            />
-                            <label htmlFor="warrants" className="text-sm font-medium text-foreground cursor-pointer select-none">
-                                Round includes Warrant Coverage
-                            </label>
-                        </div>
-
-                        {hasWarrants && (
-                            <div className="ml-6 p-4 bg-gray-50 border border-border rounded-lg grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-1">
-                                <div className="space-y-2">
-                                    <label className="block text-xs font-medium text-muted-foreground">Coverage Amount</label>
-                                    <div className="flex gap-2">
-                                        <div className="relative flex-1">
-                                            {warrantCoverageType === 'money' && (
-                                                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                                                    <DollarSign size={14} />
+                                            {/* Optional: Shares & Ownership (Only for Equity) */}
+                                            {structure !== 'SAFE' && (
+                                                <div className="grid grid-cols-2 gap-4 pt-2 border-t border-gray-200/50">
+                                                    <div className="space-y-1.5">
+                                                        <label className="text-xs font-medium text-muted-foreground">Shares Purchased</label>
+                                                        <input
+                                                            type="text"
+                                                            placeholder="0"
+                                                            value={allocation.shares}
+                                                            onChange={(e) => handleAllocationChange(allocation.id, 'shares', e.target.value)}
+                                                            className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm font-mono focus:ring-2 focus:ring-blue-100 outline-none"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-1.5">
+                                                        <label className="text-xs font-medium text-muted-foreground">Ownership Stake</label>
+                                                        <div className="relative">
+                                                            <input
+                                                                type="text"
+                                                                placeholder="0.0"
+                                                                value={allocation.ownership}
+                                                                onChange={(e) => handleAllocationChange(allocation.id, 'ownership', e.target.value)}
+                                                                className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm font-mono focus:ring-2 focus:ring-blue-100 outline-none"
+                                                            />
+                                                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">%</span>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             )}
-                                            <input
-                                                type="text"
-                                                placeholder={warrantCoverageType === 'percentage' ? "20" : "500,000"}
-                                                className={`w-full ${warrantCoverageType === 'money' ? 'pl-8' : 'pl-3'} pr-3 py-2 border border-border rounded-md text-sm`}
-                                                value={warrantCoverage}
-                                                onChange={(e) => {
-                                                    const val = e.target.value;
-                                                    if (warrantCoverageType === 'money') {
-                                                        const raw = val.replace(/,/g, '');
-                                                        if (!isNaN(Number(raw)) || raw === '') {
-                                                            setWarrantCoverage!(raw.replace(/\B(?=(\d{3})+(?!\d))/g, ","));
-                                                        }
-                                                    } else {
-                                                        setWarrantCoverage!(val);
-                                                    }
-                                                }}
-                                            />
-                                            {warrantCoverageType === 'percentage' && (
-                                                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">%</div>
-                                            )}
                                         </div>
-                                        <select
-                                            value={warrantCoverageType}
-                                            onChange={(e) => setWarrantCoverageType!(e.target.value as any)}
-                                            className="px-3 py-2 bg-white border border-border text-foreground text-sm rounded-md focus:outline-none focus:ring-1 focus:ring-primary w-24"
-                                        >
-                                            <option value="percentage">%</option>
-                                            <option value="money">$</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="block text-xs font-medium text-muted-foreground">Expiration Date</label>
-                                    <input
-                                        type="date"
-                                        className="w-full px-3 py-2 border border-border rounded-md text-sm bg-white"
-                                        value={warrantExpiration}
-                                        onChange={(e) => setWarrantExpiration(e.target.value)}
-                                    />
-                                </div>
-                            </div>
-                        )}
-                    </div>
 
-                    {/* Pro-Rata Rights Toggle (Bottom) */}
-                    <div className="pt-2">
-                        <div className="flex items-center gap-2">
-                            <input
-                                type="checkbox"
-                                id="prorata"
-                                checked={hasProRata}
-                                onChange={(e) => setHasProRata(e.target.checked)}
-                                className="w-4 h-4 text-primary border-border rounded focus:ring-primary"
-                            />
-                            <label htmlFor="prorata" className="text-sm text-foreground cursor-pointer select-none">
-                                Pro-Rata
-                            </label>
+                                        {/* Remove Button (if more than 1) */}
+                                        {allocations.length > 1 && (
+                                            <button
+                                                onClick={() => removeAllocation(allocation.id)}
+                                                className="absolute -top-2 -right-2 bg-white text-gray-400 hover:text-red-500 rounded-full p-1 border border-gray-200 shadow-sm opacity-0 group-hover:opacity-100 transition-all"
+                                                title="Remove Allocation"
+                                            >
+                                                <X size={14} />
+                                            </button>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     </div>
+                )}
+            </div>
+
+
+
+
+            {/* Warrants Section */}
+            <div className="pt-2 pb-2">
+                <div className="flex items-center gap-2 mb-2">
+                    <input
+                        type="checkbox"
+                        id="warrants"
+                        checked={hasWarrants}
+                        onChange={(e) => setHasWarrants(e.target.checked)}
+                        className="w-4 h-4 text-amber-600 border-border rounded focus:ring-primary"
+                    />
+                    <label htmlFor="warrants" className="text-sm font-medium text-foreground cursor-pointer select-none">
+                        Round includes Warrant Coverage
+                    </label>
                 </div>
-            )}
+
+                {hasWarrants && (
+                    <div className="ml-6 p-4 bg-gray-50 border border-border rounded-lg grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-1">
+                        <div className="space-y-2">
+                            <label className="block text-xs font-medium text-muted-foreground">Coverage Amount</label>
+                            <div className="flex gap-2">
+                                <div className="relative flex-1">
+                                    {warrantCoverageType === 'money' && (
+                                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                                            <DollarSign size={14} />
+                                        </div>
+                                    )}
+                                    <input
+                                        type="text"
+                                        placeholder={warrantCoverageType === 'percentage' ? "20" : "500,000"}
+                                        className={`w-full ${warrantCoverageType === 'money' ? 'pl-8' : 'pl-3'} pr-3 py-2 border border-border rounded-md text-sm`}
+                                        value={warrantCoverage}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            if (warrantCoverageType === 'money') {
+                                                const raw = val.replace(/,/g, '');
+                                                if (!isNaN(Number(raw)) || raw === '') {
+                                                    setWarrantCoverage!(raw.replace(/\B(?=(\d{3})+(?!\d))/g, ","));
+                                                }
+                                            } else {
+                                                setWarrantCoverage!(val);
+                                            }
+                                        }}
+                                    />
+                                    {warrantCoverageType === 'percentage' && (
+                                        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">%</div>
+                                    )}
+                                </div>
+                                <select
+                                    value={warrantCoverageType}
+                                    onChange={(e) => setWarrantCoverageType!(e.target.value as any)}
+                                    className="px-3 py-2 bg-white border border-border text-foreground text-sm rounded-md focus:outline-none focus:ring-1 focus:ring-primary w-24"
+                                >
+                                    <option value="percentage">%</option>
+                                    <option value="money">$</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="block text-xs font-medium text-muted-foreground">Expiration Date</label>
+                            <input
+                                type="date"
+                                className="w-full px-3 py-2 border border-border rounded-md text-sm bg-white"
+                                value={warrantExpiration}
+                                onChange={(e) => setWarrantExpiration(e.target.value)}
+                            />
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* Pro-Rata Rights Toggle (Bottom) */}
+            <div className="pt-2">
+                <div className="flex items-center gap-2">
+                    <input
+                        type="checkbox"
+                        id="prorata"
+                        checked={hasProRata}
+                        onChange={(e) => setHasProRata(e.target.checked)}
+                        className="w-4 h-4 text-primary border-border rounded focus:ring-primary"
+                    />
+                    <label htmlFor="prorata" className="text-sm text-foreground cursor-pointer select-none">
+                        Pro-Rata
+                    </label>
+                </div>
+            </div>
         </div>
     )
 }
+
 
 interface StepSyndicateProps {
     leads: string[];
@@ -894,12 +907,33 @@ function InvestorMultiSelect({ selected, onChange, placeholder, accentColor = 'p
     const [input, setInput] = useState('');
     const [isOpen, setIsOpen] = useState(false);
 
-    // Expanded Mock List
-    const MOCK_INVESTORS_LIST = MOCK_INVESTORS.map(i => i.name).sort();
+    // --- SEARCH LOGIC (ASYNC) ---
+    const [investorSuggestions, setInvestorSuggestions] = useState<{ id: string, name: string }[]>([]);
 
-    const filteredSuggestions = MOCK_INVESTORS_LIST.filter(i =>
-        i.toLowerCase().includes(input.toLowerCase()) && !selected.includes(i)
-    );
+    // Simple debounce would be better, but for now just effect
+    const [isSearching, setIsSearching] = useState(false);
+
+    // Using a separate effect for search to avoid UI lag
+    // In a real app use useDebounce
+    useEffect(() => {
+        const timeoutId = setTimeout(async () => {
+            if (input.length >= 2) {
+                setIsSearching(true);
+                const results = await import("@/app/actions").then(mod => mod.searchInvestors(input))
+                setInvestorSuggestions(results);
+                setIsSearching(false);
+            } else {
+                setInvestorSuggestions([]);
+            }
+        }, 300);
+
+        return () => clearTimeout(timeoutId);
+    }, [input]);
+
+    const filteredSuggestions = investorSuggestions.filter(i =>
+        !selected.includes(i.name) // Don't show already selected
+    ).map(i => i.name); // Legacy format expects strings for now to match interface
+
 
     const addInvestor = (name: string) => {
         if (name && !selected.includes(name)) {

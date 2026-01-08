@@ -1,12 +1,16 @@
 "use client";
 
-import { X, Check, FileText, Trash2, Pencil, Upload, Building2, Layout } from "lucide-react";
+import { X, Check, FileText, Trash2, Pencil, Upload, Building2, Layout, Globe } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { NotesManager, Note } from "../shared/NotesManager";
 import { DocumentsManager, CompanyDocument } from "../shared/DocumentsManager";
+import { getCountries } from "@/app/actions";
+
+// ... existing interfaces ...
 
 export interface CompanyData {
     id?: string;
+    // ...
     name: string;
     website?: string;
     affinityLink?: string;
@@ -28,12 +32,6 @@ interface CompanyCreationModalProps {
     availableStatuses?: string[];
 }
 
-// Countries List
-const TOP_COUNTRIES = ["United States", "Israel", "United Kingdom", "Canada"];
-const OTHER_COUNTRIES = ["Germany", "France", "Singapore", "Sweden", "Switzerland", "Netherlands", "Australia", "South Korea", "Japan", "Brazil", "India"];
-
-
-
 export function CompanyCreationModal({ checkIfOpen, onClose, initialData, onSave, availableStatuses }: CompanyCreationModalProps) {
     const [activeTab, setActiveTab] = useState<'profile' | 'documents' | 'notes'>('profile');
 
@@ -42,38 +40,46 @@ export function CompanyCreationModal({ checkIfOpen, onClose, initialData, onSave
     const [website, setWebsite] = useState("");
     const [affinityLink, setAffinityLink] = useState("");
     const [category, setCategory] = useState("");
-    const [country, setCountry] = useState("US");
+    const [country, setCountry] = useState("United States"); // Default to full name
     const [oneLiner, setOneLiner] = useState("");
     const [formationDate, setFormationDate] = useState("");
     const [jurisdiction, setJurisdiction] = useState("");
     const [description, setDescription] = useState("");
     const [status, setStatus] = useState("Active");
 
-    // Documents State
-    const [documents, setDocuments] = useState<CompanyDocument[]>([]);
-    const fileInputRef = useRef<HTMLInputElement>(null);
-    const [editingDocId, setEditingDocId] = useState<string | null>(null);
-    const [editName, setEditName] = useState("");
-
-    // Notes State
     const [notes, setNotes] = useState<Note[]>([]);
+    const [documents, setDocuments] = useState<CompanyDocument[]>([]);
+
+    const [countryList, setCountryList] = useState<string[]>([]);
+    const categoryList = ["AI", "SaaS", "Fintech", "Health", "Consumer", "Enterprise", "Deep Tech", "Crypto", "Real Estate"]; // Hardcoded for now
+
+    useEffect(() => {
+        getCountries().then(setCountryList);
+    }, []);
+
+    // ... existing logic ...
 
     // Reset or Populate on Open
     useEffect(() => {
         if (checkIfOpen) {
             if (initialData) {
+                // ...
                 setName(initialData.name || "");
                 setWebsite(initialData.website || "");
                 setAffinityLink(initialData.affinityLink || "");
                 setCategory(initialData.category || "");
-                setCountry(initialData.country || "US");
+                setCountry(initialData.country || "United States");
                 setOneLiner(initialData.oneLiner || "");
                 setFormationDate(initialData.formationDate || "");
                 setJurisdiction(initialData.jurisdiction || "");
                 setDescription(initialData.description || "");
+
+                // Populate arrays if they exist in initialData
+                // Note: initialData might not have 'notes' if checking the Interface, but we'll adding safe checks.
+                // Cast to any to access potential extra fields or just default to empty
                 setDocuments(initialData.documents || []);
-                // Notes would be loaded here if part of initialData
-                setNotes([]); // Reset notes for now or load if available
+                setNotes((initialData as any).notes || []);
+
                 setStatus(initialData.status || "Active");
                 setActiveTab('profile'); // Always start on profile
             } else {
@@ -82,13 +88,15 @@ export function CompanyCreationModal({ checkIfOpen, onClose, initialData, onSave
                 setWebsite("");
                 setAffinityLink("");
                 setCategory("");
-                setCountry("US");
+                setCountry("United States");
                 setOneLiner("");
                 setFormationDate("");
                 setJurisdiction("");
                 setDescription("");
+
                 setDocuments([]);
                 setNotes([]);
+
                 setStatus("Active");
                 setActiveTab('profile');
             }
@@ -210,6 +218,44 @@ export function CompanyCreationModal({ checkIfOpen, onClose, initialData, onSave
                                     className="w-full px-4 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary"
                                 />
                             </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="block text-sm font-medium text-muted-foreground">Country</label>
+                                    <div className="relative">
+                                        <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
+                                        <select
+                                            value={country} onChange={(e) => setCountry(e.target.value)}
+                                            className="w-full pl-10 pr-4 py-2 border border-border rounded-md text-sm bg-white"
+                                        >
+                                            {countryList.length > 0 ? (
+                                                countryList.map(c => (
+                                                    <option key={c} value={c}>{c}</option>
+                                                ))
+                                            ) : (
+                                                <option value="United States">United States (Loading...)</option>
+                                            )}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="block text-sm font-medium text-muted-foreground">One-Liner</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Brief description..."
+                                        value={oneLiner} onChange={(e) => setOneLiner(e.target.value)}
+                                        className="w-full px-4 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                                    />
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="block text-sm font-medium text-muted-foreground">Affinity Link</label>
+                                <input
+                                    type="url"
+                                    placeholder="https://affinity.co/..."
+                                    value={affinityLink} onChange={(e) => setAffinityLink(e.target.value)}
+                                    className="w-full px-4 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                                />
+                            </div>
 
                             <div className="space-y-2">
                                 <label className="block text-sm font-medium text-muted-foreground">Status</label>
@@ -252,26 +298,28 @@ export function CompanyCreationModal({ checkIfOpen, onClose, initialData, onSave
                                         className="w-full px-4 py-2 border border-border rounded-md text-sm bg-white"
                                     >
                                         <option value="">Select Category...</option>
-                                        <option value="AI">Artificial Intelligence</option>
-                                        <option value="Fintech">Fintech</option>
-                                        <option value="SaaS">B2B SaaS</option>
-                                        <option value="Consumer">Consumer</option>
-                                        <option value="Health">Healthcare</option>
-                                        <option value="Infra">Infrastructure</option>
-                                        <option value="Crypto">Crypto / Web3</option>
+                                        {categoryList.length > 0 ? (
+                                            categoryList.map(c => <option key={c} value={c}>{c}</option>)
+                                        ) : (
+                                            // Fallback if loading
+                                            <>
+                                                <option value="AI">AI</option>
+                                                <option value="SaaS">SaaS</option>
+                                            </>
+                                        )}
                                     </select>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="block text-sm font-medium text-muted-foreground">Country</label>
-                                    <select
-                                        value={country} onChange={(e) => setCountry(e.target.value)}
-                                        className="w-full px-4 py-2 border border-border rounded-md text-sm bg-white"
-                                    >
-                                        <option value="US">United States</option>
-                                        <option value="IL">Israel</option>
-                                        <option disabled>──────────</option>
-                                        {OTHER_COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
-                                    </select>
+                                    <label className="block text-sm font-medium text-muted-foreground">Focus</label>
+                                    <input
+                                        type="text"
+                                        placeholder="e.g. B2B / Consumer"
+                                        // Using 'jurisdiction' field as flexible 'Focus/Sub-sector' field for now in UI if not strictly mapped
+                                        // Or we can just keep it as is. 
+                                        // Wait, the original had 'Category' select hardcoded.
+                                        value={jurisdiction} onChange={(e) => setJurisdiction(e.target.value)}
+                                        className="w-full px-4 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                                    />
                                 </div>
                             </div>
 

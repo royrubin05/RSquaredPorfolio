@@ -152,7 +152,7 @@ export async function getCompanyDetails(id: string) {
         .from('transactions')
         .select(`
             *,
-            funds(name)
+            funds(id, name)
         `)
         .in('round_id', rounds?.map(r => r.id) || []);
 
@@ -167,13 +167,19 @@ export async function getCompanyDetails(id: string) {
         const roundTx = transactions?.filter(t => t.round_id === r.id);
         const participated = roundTx && roundTx.length > 0;
 
-        const allocations = roundTx?.map(t => ({
-            id: t.id,
-            fundId: t.funds?.name || 'Unknown Fund', // UI uses name as ID often in this simplified app
-            amount: t.amount_invested?.toString() || "0",
-            shares: t.shares_purchased?.toString() || "0",
-            ownership: t.ownership_percentage?.toString() || "0"
-        })) || [];
+        const allocations = roundTx?.map(t => {
+            // Normalize 'funds' relation which can be array or object
+            const fundRel = Array.isArray(t.funds) ? t.funds[0] : t.funds;
+
+            return {
+                id: t.id,
+                fundId: fundRel?.id || t.fund_id,
+                fundName: fundRel?.name || 'Unknown Fund',
+                amount: t.amount_invested?.toString() || "0",
+                shares: t.shares_purchased?.toString() || "0",
+                ownership: t.ownership_percentage?.toString() || "0"
+            };
+        }) || [];
 
         // Check for Warrants in this round's transactions
         const warrantTx = roundTx?.find(t => t.security_type === 'Warrant');

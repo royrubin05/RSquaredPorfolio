@@ -2,15 +2,22 @@
 
 @theme {
   /* Core Foundation Colors */
-  --color-background: #F9F8F6; /* Warm Alabaster */
-  --color-foreground: #1F2937; /* Deep Charcoal */
-  --color-card: #FFFFFF; /* Pure white */
-  --color-primary: #2C3E50; /* Oxford Navy */
-  --color-border: #E5E7EB; /* Hairline Gray */
-  --color-sidebar: #F5F5F7; /* Distinct soft gray */
-  --color-muted: #6B7280; /* Muted gray for secondary text */
+  --color-background: #F9F8F6;
+  /* Warm Alabaster */
+  --color-foreground: #1F2937;
+  /* Deep Charcoal */
+  --color-card: #FFFFFF;
+  /* Pure white */
+  --color-primary: #0055FF;
+  /* Vibrant Electric Blue */
+  --color-border: #E5E7EB;
+  /* Hairline Gray */
+  --color-sidebar: #F5F5F7;
+  /* Distinct soft gray */
+  --color-muted: #6B7280;
+  /* Muted gray for secondary text */
   --color-muted-foreground: #6B7280;
-  
+
   /* Fonts */
   --font-sans: "Inter", "sans-serif";
   --font-mono: "SF Mono", "Menlo", "Monaco", "Courier New", "monospace";

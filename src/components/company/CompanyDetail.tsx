@@ -1,7 +1,7 @@
 "use client";
 
 import { Calendar, DollarSign, Users, Plus, TrendingUp, FileText, X, StickyNote, Trash2 } from "lucide-react";
-import { deleteRound, upsertRound } from "@/app/actions";
+import { deleteRound, upsertRound, getFunds } from "@/app/actions";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { LogRoundModal } from "../dashboard/LogRoundModal";
@@ -11,6 +11,7 @@ import { NotesManager, Note } from "../shared/NotesManager";
 interface Allocation {
     id: string;
     fundId: string;
+    fundName?: string;
     amount: string;
     shares: string;
     ownership: string;
@@ -161,9 +162,10 @@ const mapRoundToModalData = (round: Round) => {
 
 interface CompanyDetailProps {
     initialData: any; // Typed as any for now to match flexible return, specifically { ...company, rounds: Round[] }
+    funds?: { id: string; name: string }[];
 }
 
-export function CompanyDetail({ initialData }: CompanyDetailProps) {
+export function CompanyDetail({ initialData, funds = [] }: CompanyDetailProps) {
     const router = useRouter();
     const [isLogRoundOpen, setIsLogRoundOpen] = useState(false);
     const [isDocsModalOpen, setIsDocsModalOpen] = useState(false);
@@ -174,6 +176,17 @@ export function CompanyDetail({ initialData }: CompanyDetailProps) {
     // Initialize with Server Data
     const [rounds, setRounds] = useState<Round[]>(initialData?.rounds || []);
     const [notes, setNotes] = useState<Note[]>([]);
+    const [availableFunds, setAvailableFunds] = useState<{ id: string, name: string }[]>(funds);
+
+    useEffect(() => {
+        if (initialData?.rounds) {
+            setRounds(initialData.rounds);
+        }
+    }, [initialData]);
+
+    useEffect(() => {
+        getFunds().then(funds => setAvailableFunds(funds));
+    }, []);
 
     // Sync state with server data on refresh
     useEffect(() => {
@@ -196,7 +209,18 @@ export function CompanyDetail({ initialData }: CompanyDetailProps) {
         return sum + (parseFloat(val) * multiplier);
     }, 0);
 
-    const totalRSquaredInvested = rounds.reduce((sum, r) => sum + (r.rSquaredInvestedAmount || 0), 0);
+    const totalRSquaredInvested = rounds.reduce((sum, r) => {
+        // Calculate from allocations if available (more accurate/dynamic)
+        if (r.allocations && r.allocations.length > 0) {
+            const allocSum = r.allocations.reduce((aSum, alloc) => {
+                const val = parseFloat(alloc.amount?.replace(/[^0-9.-]+/g, "") || "0");
+                return aSum + (isNaN(val) ? 0 : val);
+            }, 0);
+            return sum + allocSum;
+        }
+        // Fallback to legacy field
+        return sum + (r.rSquaredInvestedAmount || 0);
+    }, 0);
     const currentValuation = (() => {
         const valStr = rounds[0]?.valuation;
         if (!valStr) return "-";
@@ -224,12 +248,24 @@ export function CompanyDetail({ initialData }: CompanyDetailProps) {
     const fundHoldings = rounds.reduce((acc, round) => {
         if (!round.participated || !round.allocations) return acc;
         round.allocations.forEach(alloc => {
-            const fundId = alloc.fundId || "Unknown Fund";
+            const fundId = alloc.fundId || "Unknown Fund"; // UUID
+            const fundName = alloc.fundName || availableFunds.find(f => f.id === fundId)?.name || 'Unknown Fund';
+
             if (!acc[fundId]) {
-                acc[fundId] = { fundId, instruments: [], totalShares: 0, totalCost: 0, impliedValue: 0 };
+                acc[fundId] = {
+                    fundId,
+                    fundName, // Store Name for Display
+                    instruments: [],
+                    totalShares: 0,
+                    totalCost: 0,
+                    impliedValue: 0
+                };
             }
-            const sharesMs = parseFloat(alloc.shares?.replace(/,/g, '') || '0');
-            const costMs = parseFloat(alloc.amount?.replace(/[$,]/g, '') || '0');
+
+            const valStr = alloc.shares?.replace(/,/g, '') || "0";
+            const costStr = alloc.amount?.replace(/[$,]/g, '') || "0";
+            const sharesMs = parseFloat(valStr);
+            const costMs = parseFloat(costStr);
 
             const validShares = isNaN(sharesMs) ? 0 : sharesMs;
             const validCost = isNaN(costMs) ? 0 : costMs;
@@ -237,24 +273,22 @@ export function CompanyDetail({ initialData }: CompanyDetailProps) {
             acc[fundId].totalShares += validShares;
             acc[fundId].totalCost += validCost;
 
-            // Implied Value = Total Shares * Latest Round PPS
-            // Note: This updates incrementally, but works because we multiply totalShares at the end, 
-            // OR we update it here iteratively? No, iteratively is wrong if PPS differs per round.
-            // We must set impliedValue based on FINAL totalShares.
-            // So we just accumulate Shares here.
-
             const instrumentLabel = round.round.includes('SAFE') ? `SAFE (${round.round})` : `Preferred Equity (${round.round})`;
             if (!acc[fundId].instruments.includes(instrumentLabel)) {
                 acc[fundId].instruments.push(instrumentLabel);
             }
         });
         return acc;
-    }, {} as Record<string, { fundId: string, instruments: string[], totalShares: number, totalCost: number, impliedValue: number }>);
+    }, {} as Record<string, { fundId: string, fundName: string, instruments: string[], totalShares: number, totalCost: number, impliedValue: number }>);
 
     // Apply Implied Value Calculation using Latest PPS
     Object.values(fundHoldings).forEach(holding => {
         holding.impliedValue = holding.totalShares * (isNaN(latestPps) ? 0 : latestPps);
     });
+
+    console.log('[CompanyDetail] Rounds:', rounds);
+    console.log('[CompanyDetail] Latest PPS:', latestPps);
+    console.log('[CompanyDetail] Fund Holdings:', fundHoldings);
     // ...
 
 
@@ -317,16 +351,19 @@ export function CompanyDetail({ initialData }: CompanyDetailProps) {
         <div className="flex-1 w-full p-6 md:p-8 flex flex-col gap-8">
             {isLogRoundOpen && (
                 <LogRoundModal
-                    checkIfOpen={isLogRoundOpen}
+                    key={editingRoundData?.id || 'new-round'}
+                    isOpen={isLogRoundOpen}
                     onClose={() => {
                         setIsLogRoundOpen(false);
                         setEditingRoundData(null);
                     }}
                     companyName={companyName}
                     onSave={handleSaveRound}
-                    initialData={editingRoundData}
+                    initialData={editingRoundData || undefined}
+                    funds={availableFunds}
                 />
             )}
+
             {/* Documents Modal */}
             {isDocsModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
@@ -503,11 +540,11 @@ export function CompanyDetail({ initialData }: CompanyDetailProps) {
                             ) : (
                                 Object.values(fundHoldings).map((holding) => (
                                     <tr key={holding.fundId}>
-                                        <td className="px-6 py-4 text-foreground font-medium align-top">{holding.fundId}</td>
+                                        <td className="px-6 py-4 text-foreground font-medium align-top">{holding.fundName}</td>
                                         <td className="px-6 py-4 align-top space-y-1">
                                             {holding.instruments.map((inst, idx) => (
                                                 <div key={idx} className="flex items-center gap-1.5">
-                                                    <span className={`w-2 h-2 rounded-full ${inst.includes('SAFE') ? 'bg-purple-500' : 'bg-blue-500'}`}></span>
+                                                    <span className={`w-2 h-2 rounded-full ${inst.includes('SAFE') ? 'bg-blue-500' : 'bg-blue-500'}`}></span>
                                                     {inst}
                                                 </div>
                                             ))}

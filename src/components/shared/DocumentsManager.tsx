@@ -61,9 +61,9 @@ export function DocumentsManager({ documents, onDocumentsChange }: DocumentsMana
                     {/* Upload Area */}
                     <div
                         onClick={() => fileInputRef.current?.click()}
-                        className="border-2 border-dashed border-border rounded-lg p-8 flex flex-col items-center justify-center text-center hover:bg-gray-50 hover:border-purple-300 transition-all cursor-pointer group"
+                        className="border-2 border-dashed border-border rounded-lg p-8 flex flex-col items-center justify-center text-center hover:bg-gray-50 hover:border-blue-300 transition-all cursor-pointer group"
                     >
-                        <div className="p-3 bg-purple-50 rounded-full mb-3 group-hover:bg-purple-100 transition-colors text-purple-600">
+                        <div className="p-3 bg-blue-50 rounded-full mb-3 group-hover:bg-blue-100 transition-colors text-blue-600">
                             <Upload size={24} />
                         </div>
                         <p className="text-sm font-medium text-foreground">Click to upload documents</p>
@@ -77,7 +77,7 @@ export function DocumentsManager({ documents, onDocumentsChange }: DocumentsMana
                                 <div key={doc.id} className="flex items-center justify-between p-3 hover:bg-white transition-colors group">
                                     <div className="flex items-center gap-3 flex-1 min-w-0">
                                         <div className="p-2 bg-white border border-border rounded-md">
-                                            <FileText size={16} className="text-purple-600" />
+                                            <FileText size={16} className="text-blue-600" />
                                         </div>
                                         <div className="min-w-0">
                                             <p className="text-sm font-medium text-foreground truncate">{doc.name}</p>

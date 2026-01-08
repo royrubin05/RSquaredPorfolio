@@ -1,6 +1,8 @@
 import { CompanyDetail } from "@/components/company/CompanyDetail";
 import { getCompanyDetails } from "@/lib/data";
 
+import { getFunds } from "@/app/actions";
+
 export const dynamic = 'force-dynamic';
 
 
@@ -11,7 +13,10 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
     // Debug Access
     console.log(`[CompanyPage] Fetching details for ID: ${id}`);
 
-    const data = await getCompanyDetails(id);
+    const [data, funds] = await Promise.all([
+        getCompanyDetails(id),
+        getFunds()
+    ]);
 
     if (!data) {
         return (
@@ -24,5 +29,5 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
             </div>
         );
     }
-    return <CompanyDetail initialData={data} />;
+    return <CompanyDetail initialData={data} funds={funds} />;
 }

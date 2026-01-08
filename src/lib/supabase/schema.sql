@@ -6,8 +6,12 @@ CREATE TABLE funds (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name TEXT NOT NULL, -- e.g. "Fund II"
     vintage TEXT,       -- e.g. "2023"
-    committed_capital NUMERIC NOT NULL,
+    committed_capital NUMERIC NOT NULL, -- AUM
+    investable_amount NUMERIC,
     currency TEXT DEFAULT 'USD',
+    formation_date DATE,
+    investment_period_start DATE,
+    investment_period_end DATE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -90,6 +94,7 @@ CREATE TABLE documents (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     company_id UUID REFERENCES companies(id) ON DELETE CASCADE, 
     round_id UUID REFERENCES financing_rounds(id) ON DELETE CASCADE,
+    fund_id UUID REFERENCES funds(id),
     name TEXT NOT NULL,
     file_type TEXT,
     size_bytes BIGINT,

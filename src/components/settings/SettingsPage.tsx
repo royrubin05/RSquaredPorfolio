@@ -1,20 +1,30 @@
 "use client";
 
 import { Plus, Wallet, Edit2, Trash2, X, Check, Layers, Users, Activity } from "lucide-react";
-import { useState } from "react";
-import { INITIAL_FUNDS, INITIAL_INDUSTRIES } from "../../lib/constants";
+import { useState, useEffect } from "react";
+// import { INITIAL_FUNDS, INITIAL_INDUSTRIES } from "../../lib/constants"; // Removed
 import { CompanyStatusSettings } from "./CompanyStatusSettings";
+import { upsertFund, deleteFund, saveIndustries, upsertTeamMember, deleteTeamMember } from "@/app/actions";
+import { useRouter } from "next/navigation";
 
-export function SettingsPage() {
+interface SettingsPageProps {
+    initialFunds?: any[];
+    initialIndustries?: any[];
+    initialTeam?: any[];
+}
+
+export function SettingsPage({ initialFunds = [], initialIndustries = [], initialTeam = [] }: SettingsPageProps) {
+    const router = useRouter();
     const [activeTab, setActiveTab] = useState<'funds' | 'industries' | 'users' | 'statuses'>('funds');
 
-    // Data State
-    const [funds, setFunds] = useState(INITIAL_FUNDS);
-    const [industries, setIndustries] = useState(INITIAL_INDUSTRIES);
-    const [users, setUsers] = useState([
-        { id: 1, name: "Roy Rubin", email: "roy.rubin@example.com", role: "Admin", status: "Active" },
-        { id: 2, name: "Investment Team", email: "team@example.com", role: "Admin", status: "Active" },
-    ]);
+    // Data State (synced with props)
+    const [funds, setFunds] = useState(initialFunds);
+    const [industries, setIndustries] = useState(initialIndustries);
+    const [users, setUsers] = useState(initialTeam);
+
+    useEffect(() => { setFunds(initialFunds); }, [initialFunds]);
+    useEffect(() => { setIndustries(initialIndustries); }, [initialIndustries]);
+    useEffect(() => { setUsers(initialTeam); }, [initialTeam]);
 
     // Modals
     const [isAddFundOpen, setIsAddFundOpen] = useState(false);
@@ -28,55 +38,53 @@ export function SettingsPage() {
     // --- Handlers ---
 
     // Funds
-    const handleDeleteFund = (id: number) => {
+    const handleDeleteFund = async (id: any) => {
         if (confirm("Are you sure you want to delete this fund?")) {
-            setFunds(funds.filter(f => f.id !== id));
+            await deleteFund(id); // Action revalidates
+            // Optimistic update optional, but props update will follow
         }
     };
-    const handleAddFund = (newFund: any) => {
-        if (selectedFund) {
-            setFunds(funds.map(f => f.id === selectedFund.id ? { ...newFund, id: f.id, deployed: f.deployed } : f));
-            setSelectedFund(null);
-        } else {
-            setFunds([...funds, { ...newFund, id: Date.now(), deployed: 0 }]);
-        }
+    const handleAddFund = async (newFund: any) => {
+        // Optimistic UI could go here, but waiting for server is safer for IDs
+        await upsertFund(newFund);
         setIsAddFundOpen(false);
+        setSelectedFund(null);
     };
     const openEditFund = (fund: any) => { setSelectedFund(fund); setIsAddFundOpen(true); }
 
     // Industries
-    const handleDeleteIndustry = (id: number) => {
+    const handleDeleteIndustry = async (name: string) => {
         if (confirm("Are you sure you want to delete this industry tag?")) {
-            setIndustries(industries.filter(i => i.id !== id));
+            const newList = industries.filter(i => i.name !== name).map(i => i.name);
+            await saveIndustries(newList);
         }
     };
-    const handleAddIndustry = (name: string) => {
+    const handleAddIndustry = async (name: string) => {
+        // If editing, we actually just remove old and add new (simple replace for tags)
+        let newList = industries.map(i => i.name);
+
         if (selectedIndustry) {
-            setIndustries(industries.map(i => i.id === selectedIndustry.id ? { ...i, name } : i));
-            setSelectedIndustry(null);
+            newList = newList.map(n => n === selectedIndustry.name ? name : n);
         } else {
-            setIndustries([...industries, { id: Date.now(), name, companies: 0 }]);
+            if (!newList.includes(name)) newList.push(name);
         }
+
+        await saveIndustries(newList);
         setIsAddIndustryOpen(false);
+        setSelectedIndustry(null);
     };
     const openEditIndustry = (industry: any) => { setSelectedIndustry(industry); setIsAddIndustryOpen(true); }
 
-
-
     // Users
-    const handleDeleteUser = (id: number) => {
+    const handleDeleteUser = async (id: any) => {
         if (confirm("Are you sure you want to delete this user?")) {
-            setUsers(users.filter(u => u.id !== id));
+            await deleteTeamMember(id);
         }
     };
-    const handleAddUser = (user: any) => {
-        if (selectedUser) {
-            setUsers(users.map(u => u.id === selectedUser.id ? { ...user, id: u.id } : u));
-            setSelectedUser(null);
-        } else {
-            setUsers([...users, { ...user, id: Date.now(), status: 'Active' }]);
-        }
+    const handleAddUser = async (user: any) => {
+        await upsertTeamMember(user);
         setIsAddUserOpen(false);
+        setSelectedUser(null);
     };
     const openEditUser = (user: any) => { setSelectedUser(user); setIsAddUserOpen(true); }
 
@@ -242,7 +250,7 @@ export function SettingsPage() {
                                                             <Edit2 size={16} />
                                                         </button>
                                                         <button
-                                                            onClick={() => handleDeleteIndustry(industry.id)}
+                                                            onClick={() => handleDeleteIndustry(industry.name)}
                                                             className="p-1 text-muted-foreground hover:text-red-600 transition-colors"
                                                         >
                                                             <Trash2 size={16} />

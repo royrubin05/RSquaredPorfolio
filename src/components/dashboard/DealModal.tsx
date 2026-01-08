@@ -2,7 +2,15 @@
 
 import { X, ChevronRight, Check, Plus, FileText, Trash2, Pencil, Upload } from "lucide-react";
 import { useState, useRef } from "react";
-import { INITIAL_ROUND_LABELS } from "../../lib/constants";
+const ROUND_LABELS = [
+    { id: 1, name: "Pre-Seed", order: 1 },
+    { id: 2, name: "Seed", order: 2 },
+    { id: 3, name: "Series A", order: 3 },
+    { id: 4, name: "Series B", order: 4 },
+    { id: 5, name: "Series C", order: 5 },
+    { id: 6, name: "Bridge", order: 6 },
+    { id: 7, name: "Growth", order: 7 },
+];
 
 interface DealModalProps {
     checkIfOpen: boolean;
@@ -28,7 +36,7 @@ export function DealModal({ checkIfOpen, onClose, initialStep = 1, initialCompan
                 {/* Header */}
                 <div className="px-6 py-4 border-b border-border flex justify-between items-center bg-gray-50/50">
                     <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-full ${step === 1 ? 'bg-blue-100 text-blue-600' : step === 2 ? 'bg-purple-100 text-purple-600' : step === 3 ? 'bg-amber-100 text-amber-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                        <div className={`p-2 rounded-full ${step === 1 ? 'bg-blue-100 text-blue-600' : step === 2 ? 'bg-blue-100 text-blue-600' : step === 3 ? 'bg-amber-100 text-amber-600' : 'bg-emerald-100 text-emerald-600'}`}>
                             {step === 1 && <span className="font-bold text-xs">01</span>}
                             {step === 2 && <span className="font-bold text-xs">02</span>}
                             {step === 3 && <span className="font-bold text-xs">03</span>}
@@ -300,7 +308,7 @@ function StepRoundTerms() {
     return (
         <div className="space-y-6">
             <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-2">
-                <span className="w-1 h-4 bg-purple-500 rounded-full"></span>
+                <span className="w-1 h-4 bg-blue-500 rounded-full"></span>
                 2. Round Terms
             </h3>
 
@@ -325,7 +333,7 @@ function StepRoundTerms() {
                     <label className="block text-xs font-medium text-muted-foreground">Round Label</label>
                     <select className="w-full px-3 py-2 border border-border rounded-md text-sm bg-white">
                         <option value="">Select Round...</option>
-                        {[...INITIAL_ROUND_LABELS].sort((a, b) => a.order - b.order).map(label => (
+                        {[...ROUND_LABELS].sort((a, b) => a.order - b.order).map(label => (
                             <option key={label.id} value={label.name}>{label.name}</option>
                         ))}
                     </select>

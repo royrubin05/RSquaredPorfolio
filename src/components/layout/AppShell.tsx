@@ -1,5 +1,8 @@
+"use client";
+
 import Link from 'next/link';
 import { Home, PieChart, Users, BookOpen, Settings } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -8,34 +11,34 @@ interface AppShellProps {
 export function AppShell({ children }: AppShellProps) {
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background text-foreground">
-      {/* Sidebar - Distinct soft gray */}
-      <aside className="w-64 flex-shrink-0 border-r border-border bg-sidebar flex flex-col">
+      {/* Sidebar - Richer, subtle gradient */}
+      <aside className="w-64 flex-shrink-0 border-r border-border bg-gradient-to-b from-slate-50 to-white flex flex-col pt-2">
         {/* Brand Header */}
-        <div className="h-16 flex items-center px-6 border-b border-border">
-          <span className="text-primary font-bold text-lg tracking-tight">R² Portfolio</span>
+        <div className="h-16 flex items-center px-6 mb-2">
+          <span className="font-bold text-xl tracking-tight bg-gradient-to-r from-primary to-blue-500 bg-clip-text text-transparent">
+            R-Squared Ventures
+          </span>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto py-6 px-3 space-y-1">
+        <nav className="flex-1 overflow-y-auto px-3 space-y-1">
           <NavLink href="/" icon={<Home size={20} />} label="Dashboard" />
+          <NavLink href="/funds" icon={<BookOpen size={20} />} label="Funds" />
           <NavLink href="/companies" icon={<PieChart size={20} />} label="Portfolio Companies" />
           <NavLink href="/investors" icon={<Users size={20} />} label="Co-Investors" />
         </nav>
 
         {/* Footer / Settings */}
-        <div className="p-4 border-t border-border">
-          <Link href="/settings" className="flex items-center gap-3 w-full px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-gray-100/50 rounded-md transition-colors">
-            <Settings size={20} />
-            <span>Settings</span>
-          </Link>
-          <div className="px-3 py-2 text-xs text-muted-foreground/50 font-mono">
-            v{process.env.NEXT_PUBLIC_GIT_COMMIT || 'local'}
+        <div className="p-4 border-t border-border/50 bg-slate-50/50">
+          <NavLink href="/settings" icon={<Settings size={20} />} label="Settings" />
+          <div className="px-3 py-2 text-[10px] text-muted-foreground/40 font-mono text-center mt-2">
+            v{process.env.NEXT_PUBLIC_GIT_COMMIT || '2.4.0-beta'}
           </div>
         </div>
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col w-full h-full overflow-hidden relative">
+      <main className="flex-1 flex flex-col w-full h-full overflow-hidden relative bg-white">
         {/* Scrollable Canvas */}
         <div className="flex-1 overflow-y-auto w-full">
           {children}
@@ -46,13 +49,33 @@ export function AppShell({ children }: AppShellProps) {
 }
 
 function NavLink({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {
+  const pathname = usePathname();
+  const isActive = pathname === href;
+
   return (
     <Link
       href={href}
-      className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-primary hover:bg-white rounded-md transition-all group"
+      className={`flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group relative ${isActive
+        ? 'bg-primary/10 text-primary shadow-sm'
+        : 'text-muted-foreground hover:text-foreground hover:bg-slate-100'
+        }`}
     >
-      <span className="group-hover:text-primary transition-colors">{icon}</span>
+      {/* Active Indicator Bar */}
+      {isActive && (
+        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r-full" />
+      )}
+
+      <span className={`transition-transform duration-200 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`}>
+        {icon}
+      </span>
       <span>{label}</span>
+
+      {/* Hover Arrow */}
+      {!isActive && (
+        <span className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity text-slate-400">
+          ›
+        </span>
+      )}
     </Link>
   );
 }

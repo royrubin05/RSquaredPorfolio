@@ -31,6 +31,7 @@
     "@vitejs/plugin-react": "^5.1.2",
     "eslint": "^9",
     "eslint-config-next": "16.1.1",
+    "fs": "^0.0.1-security",
     "jsdom": "^27.4.0",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",

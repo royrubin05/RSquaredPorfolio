@@ -7,12 +7,10 @@ import { useState, useEffect } from "react";
 import { CompanyCreationModal, CompanyData } from "../dashboard/CompanyCreationModal";
 import { upsertCompany, deleteCompany, getCompanyStatuses } from "@/app/actions";
 
-// Mock Data with Fund Associations
-// Mock Data with Fund Associations
-import { INITIAL_COMPANIES } from "../../lib/constants";
+
 
 // Countries List
-const FUNDS = ["All Funds", "Fund I", "Fund II", "Fund III"];
+// const FUNDS = ["All Funds", "Fund I", "Fund II", "Fund III"]; // Removed Hardcoded
 
 // Warrants Aggregation Type
 interface PendingWarrant {
@@ -36,9 +34,10 @@ export interface PortfolioCompany {
     status: string;
 }
 
-export function CompanyList({ initialCompanies = [] }: { initialCompanies?: PortfolioCompany[] }) {
+export function CompanyList({ initialCompanies = [], initialFunds = [] }: { initialCompanies?: PortfolioCompany[], initialFunds?: { id: string, name: string }[] }) {
     const router = useRouter();
     const [selectedFund, setSelectedFund] = useState("All Funds");
+    const [funds, setFunds] = useState<{ id: string, name: string }[]>(initialFunds || []);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [selectedCompany, setSelectedCompany] = useState<CompanyData | null>(null);
     const [companies, setCompanies] = useState<any[]>([]);
@@ -216,7 +215,7 @@ export function CompanyList({ initialCompanies = [] }: { initialCompanies?: Port
                                 className="pl-9 pr-4 py-2 bg-white border border-border text-foreground text-sm font-medium rounded-md hover:bg-gray-50 transition-colors shadow-sm focus:outline-none focus:ring-1 focus:ring-primary appearance-none cursor-pointer"
                             >
 
-                                {FUNDS.map(f => <option key={f} value={f}>{f}</option>)}
+                                {funds.map(f => <option key={f.id} value={f.name}>{f.name}</option>)}
                             </select>
                         </div>
                     </div>
