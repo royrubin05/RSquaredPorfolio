@@ -104,16 +104,39 @@ const mapRoundToModalData = (round: Round) => {
     // For now, I will just strip '$' so at least the visual double-$ is fixed. 
     // If it contains "M", user might need to re-enter or we need better parsing.
     // I'll strip '$' and ',' to be safe for initialization.
-    const stripCurrency = (val?: string) => val ? val.replace(/[$,]/g, '') : '';
+    // Helper: Parse currency strings with suffixes (M, K, B) into full numbers
+    // This ensures that "120M" becomes "120000000" for editing, avoiding the data corruption issue
+    const parseCurrencyString = (val?: string) => {
+        if (!val) return '';
+
+        let multiplier = 1;
+        let cleanVal = val.replace(/[$,]/g, ''); // Strip standard symbols
+
+        if (cleanVal.toUpperCase().includes('M')) {
+            multiplier = 1000000;
+            cleanVal = cleanVal.replace(/M/i, '');
+        } else if (cleanVal.toUpperCase().includes('K')) {
+            multiplier = 1000;
+            cleanVal = cleanVal.replace(/K/i, '');
+        } else if (cleanVal.toUpperCase().includes('B')) {
+            multiplier = 1000000000;
+            cleanVal = cleanVal.replace(/B/i, '');
+        }
+
+        const num = parseFloat(cleanVal);
+        if (isNaN(num)) return '';
+
+        return (num * multiplier).toString();
+    };
 
     return {
         id: round.id,
         roundTerms: {
             date: round.date,
             stage: round.round,
-            valuation: stripCurrency(round.valuation), // Strip $ to avoid double $ in input
-            pps: stripCurrency(round.pps),
-            capitalRaised: stripCurrency(round.capitalRaised),
+            valuation: parseCurrencyString(round.valuation),
+            pps: parseCurrencyString(round.pps),
+            capitalRaised: parseCurrencyString(round.capitalRaised),
             // Ensure documents have IDs to fix key warning
             documents: (round.documents || []).map(d => ({
                 ...d,

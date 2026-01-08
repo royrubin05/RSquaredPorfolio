@@ -63,6 +63,28 @@ describe('Server Actions: upsertRound', () => {
         expect(result).toEqual({ error: 'Round Date is required.' });
     });
 
+    it('should handle "Jan 2024" date string by converting to valid date', async () => {
+        const mockData = {
+            roundTerms: {
+                stage: 'Series B',
+                date: 'Jan 2024', // Problematic format
+                valuation: '$20M',
+                pps: '$2.00',
+                capitalRaised: '$5M'
+            },
+            position: { participated: false }
+        };
+
+        await upsertRound(mockData, 'company-456');
+
+        expect(mockUpsert).toHaveBeenCalledWith(expect.objectContaining({
+            // Should convert to something valid. 
+            // "Jan 2024" -> "2024-01-01" (approx)
+            // Just checking it is NOT "Jan 2024"
+            close_date: expect.stringMatching(/^\d{4}-\d{2}-\d{2}/)
+        }));
+    });
+
     it('should handle valid dates correctly', async () => {
         const mockData = {
             roundTerms: {
@@ -79,6 +101,26 @@ describe('Server Actions: upsertRound', () => {
 
         expect(mockUpsert).toHaveBeenCalledWith(expect.objectContaining({
             close_date: '2025-01-01',
+        }));
+    });
+    it('should update existing round if ID is provided', async () => {
+        const mockData = {
+            id: 'round-existing-123',
+            roundTerms: {
+                stage: 'Series B',
+                date: '2024-01-01',
+                valuation: '$20M',
+                pps: '$2.00',
+                capitalRaised: '$5M'
+            },
+            position: { participated: false }
+        };
+
+        await upsertRound(mockData, 'company-456');
+
+        expect(mockUpsert).toHaveBeenCalledWith(expect.objectContaining({
+            id: 'round-existing-123', // ID should be passed to upsert
+            round_label: 'Series B'
         }));
     });
 });

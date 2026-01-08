@@ -90,6 +90,7 @@ export function LogRoundModal({ checkIfOpen, onClose, companyName, onSave, initi
 
     const processFinalSave = () => {
         const payload = {
+            id: initialData?.id, // Persist ID for updates
             roundTerms: {
                 date: roundDate,
                 stage,

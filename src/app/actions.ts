@@ -110,14 +110,27 @@ export async function upsertRound(data: any, companyId: string) {
     // Cleanup currency strings
     const cleanCurrency = (val: string) => val ? parseFloat(val.replace(/[^0-9.-]+/g, "")) : null;
 
+    // Helper: Normalize Date
+    const normalizeDate = (dateStr: string): string | null => {
+        if (!dateStr) return null;
+        const date = new Date(dateStr);
+        if (isNaN(date.getTime())) return null; // Invalid date
+        return date.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+    };
+
     if (!data.roundTerms.date) {
         return { error: 'Round Date is required.' };
+    }
+
+    const normalizedDate = normalizeDate(data.roundTerms.date);
+    if (!normalizedDate) {
+        return { error: `Invalid Date Format: "${data.roundTerms.date}". Please use a valid date.` };
     }
 
     const roundPayload: any = {
         company_id: companyId,
         round_label: data.roundTerms.stage,
-        close_date: data.roundTerms.date,
+        close_date: normalizedDate,
         post_money_valuation: cleanCurrency(data.roundTerms.valuation),
         price_per_share: cleanCurrency(data.roundTerms.pps),
         round_size: cleanCurrency(data.roundTerms.capitalRaised),
