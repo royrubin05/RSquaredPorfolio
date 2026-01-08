@@ -16,11 +16,11 @@ export async function upsertCompany(data: any) {
 
     const payload: any = {
         name: data.name,
-        sector: data.category, // Map category -> sector
-        headquarters: data.country, // Map country -> headquarters
+        sector: data.category || null, // Map category -> sector
+        headquarters: data.country || null, // Map country -> headquarters
         status: data.status || 'Active',
-        website: data.website,
-        description: data.description,
+        website: data.website || null,
+        description: data.description || null,
         // one_liner? jurisdiction?
     };
 
@@ -110,6 +110,10 @@ export async function upsertRound(data: any, companyId: string) {
     // Cleanup currency strings
     const cleanCurrency = (val: string) => val ? parseFloat(val.replace(/[^0-9.-]+/g, "")) : null;
 
+    if (!data.roundTerms.date) {
+        return { error: 'Round Date is required.' };
+    }
+
     const roundPayload: any = {
         company_id: companyId,
         round_label: data.roundTerms.stage,
@@ -182,7 +186,7 @@ export async function upsertRound(data: any, companyId: string) {
             fund_id: fundMap.get(data.position.allocations?.[0]?.fundId) || null, // Attach to first fund
             security_type: 'Warrant',
             warrant_coverage_percentage: parseFloat(data.position.warrantCoverage || '0'),
-            warrant_expiration_date: data.position.warrantExpiration
+            warrant_expiration_date: data.position.warrantExpiration || null
         };
 
         const { error: wError } = await supabase.from('transactions').insert(warrantTx);

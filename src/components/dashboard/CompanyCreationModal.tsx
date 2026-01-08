@@ -95,8 +95,6 @@ export function CompanyCreationModal({ checkIfOpen, onClose, initialData, onSave
         }
     }, [checkIfOpen, initialData]);
 
-    if (!checkIfOpen) return null;
-
     // --- HANDLERS ---
 
     const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -110,6 +108,8 @@ export function CompanyCreationModal({ checkIfOpen, onClose, initialData, onSave
             return () => clearTimeout(timer);
         }
     }, [showConfirmModal, onClose]);
+
+    if (!checkIfOpen) return null;
 
     const handleSave = () => {
         const companyData: CompanyData = {

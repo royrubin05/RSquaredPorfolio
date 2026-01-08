@@ -121,19 +121,29 @@ export function CompanyList({ initialCompanies = [] }: { initialCompanies?: Port
         setIsLoading(false);
     };
 
-    const handleDeleteCompany = async (e: React.MouseEvent, id: string) => {
-        e.stopPropagation();
-        if (!confirm("Are you sure you want to delete this company? This action cannot be undone.")) return;
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [companyToDelete, setCompanyToDelete] = useState<string | null>(null);
 
-        const result = await deleteCompany(id);
+    const openDeleteModal = (e: React.MouseEvent, id: string) => {
+        e.stopPropagation();
+        setCompanyToDelete(id);
+        setDeleteModalOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!companyToDelete) return;
+
+        setIsLoading(true);
+        const result = await deleteCompany(companyToDelete);
         if (result.error) {
             alert(`Error deleting company: ${result.error}`);
         } else {
             router.refresh();
         }
+        setDeleteModalOpen(false);
+        setCompanyToDelete(null);
+        setIsLoading(false);
     };
-
-
 
     if (isLoading) {
         return <div className="p-8 text-center text-muted-foreground">Loading portfolio...</div>;
@@ -148,6 +158,37 @@ export function CompanyList({ initialCompanies = [] }: { initialCompanies?: Port
                 onSave={handleSaveCompany}
                 availableStatuses={statuses}
             />
+
+            {/* Delete Confirmation Modal */}
+            {deleteModalOpen && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-xl shadow-2xl border border-border p-6 w-[400px] flex flex-col gap-4 animate-in zoom-in-95 duration-200">
+                        <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-full bg-red-50 text-red-600 flex items-center justify-center flex-shrink-0">
+                                <Trash2 size={20} />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-semibold text-foreground">Delete Company</h3>
+                                <p className="text-sm text-muted-foreground">Are you sure? This action cannot be undone.</p>
+                            </div>
+                        </div>
+                        <div className="flex justify-end gap-2 mt-2">
+                            <button
+                                onClick={() => setDeleteModalOpen(false)}
+                                className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-gray-100 rounded-md transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={confirmDelete}
+                                className="px-4 py-2 text-sm font-medium bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors shadow-sm"
+                            >
+                                Delete Company
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
 
             <div className="w-full mx-auto">
@@ -291,7 +332,7 @@ export function CompanyList({ initialCompanies = [] }: { initialCompanies?: Port
 
                                             </Link>
                                             <button
-                                                onClick={(e) => handleDeleteCompany(e, company.id)}
+                                                onClick={(e) => openDeleteModal(e, company.id)}
                                                 className="text-muted-foreground hover:text-red-600 transition-colors p-1 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100"
                                                 title="Delete Company"
                                             >

@@ -78,6 +78,12 @@ export function LogRoundModal({ checkIfOpen, onClose, companyName, onSave, initi
 
     // Final Save
     const handleLogRound = () => {
+        // Validation
+        if (!roundDate) {
+            alert("Please select a Round Date.");
+            return;
+        }
+
         // Just show the confirmation modal
         setShowConfirmModal(true);
     };

@@ -222,26 +222,37 @@ export function SettingsPage() {
                                 </button>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {industries.map((industry) => (
-                                    <div key={industry.id} className="bg-card border border-border rounded-lg p-4 flex justify-between items-center group hover:border-primary/30 transition-all hover:shadow-sm">
-                                        <div>
-                                            <h3 className="text-sm font-medium text-foreground">{industry.name}</h3>
-                                            <p className="text-xs text-muted-foreground">{industry.companies} companies</p>
-                                        </div>
-                                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button onClick={() => openEditIndustry(industry)} className="p-1.5 text-muted-foreground hover:text-primary transition-colors rounded-md hover:bg-gray-50">
-                                                <Edit2 size={14} />
-                                            </button>
-                                            <button
-                                                onClick={() => handleDeleteIndustry(industry.id)}
-                                                className="p-1.5 text-muted-foreground hover:text-red-600 transition-colors rounded-md hover:bg-red-50"
-                                            >
-                                                <Trash2 size={14} />
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))}
+                            <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+                                <table className="w-full text-sm">
+                                    <thead className="bg-gray-50/50">
+                                        <tr className="border-b border-border text-left">
+                                            <th className="px-6 py-3 font-medium text-muted-foreground uppercase text-xs tracking-wider">Industry Name</th>
+                                            <th className="px-6 py-3 font-medium text-muted-foreground uppercase text-xs tracking-wider text-right">Companies</th>
+                                            <th className="px-6 py-3 font-medium text-muted-foreground uppercase text-xs tracking-wider text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-border bg-white">
+                                        {industries.map((industry) => (
+                                            <tr key={industry.id} className="group hover:bg-gray-50/50 transition-colors">
+                                                <td className="px-6 py-4 font-medium text-foreground">{industry.name}</td>
+                                                <td className="px-6 py-4 text-right font-mono text-muted-foreground">{industry.companies}</td>
+                                                <td className="px-6 py-4 text-right">
+                                                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <button onClick={() => openEditIndustry(industry)} className="p-1 text-muted-foreground hover:text-primary transition-colors">
+                                                            <Edit2 size={16} />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDeleteIndustry(industry.id)}
+                                                            className="p-1 text-muted-foreground hover:text-red-600 transition-colors"
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     )}
