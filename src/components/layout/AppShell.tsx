@@ -28,6 +28,9 @@ export function AppShell({ children }: AppShellProps) {
             <Settings size={20} />
             <span>Settings</span>
           </Link>
+          <div className="px-3 py-2 text-xs text-muted-foreground/50 font-mono">
+            v{process.env.NEXT_PUBLIC_GIT_COMMIT || 'local'}
+          </div>
         </div>
       </aside>
 

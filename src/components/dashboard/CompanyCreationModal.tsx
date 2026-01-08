@@ -99,6 +99,18 @@ export function CompanyCreationModal({ checkIfOpen, onClose, initialData, onSave
 
     // --- HANDLERS ---
 
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+
+    useEffect(() => {
+        if (showConfirmModal) {
+            const timer = setTimeout(() => {
+                setShowConfirmModal(false);
+                onClose();
+            }, 1000);
+            return () => clearTimeout(timer);
+        }
+    }, [showConfirmModal, onClose]);
+
     const handleSave = () => {
         const companyData: CompanyData = {
             id: initialData?.id, // Preserve ID if editing
@@ -115,8 +127,7 @@ export function CompanyCreationModal({ checkIfOpen, onClose, initialData, onSave
             documents
         };
         onSave(companyData);
-        alert("Company profile saved successfully.");
-        onClose();
+        setShowConfirmModal(true);
     };
 
     // Notes
@@ -323,6 +334,21 @@ export function CompanyCreationModal({ checkIfOpen, onClose, initialData, onSave
                     </button>
                 </div>
             </div>
+
+            {/* Success Confirmation Modal */}
+            {showConfirmModal && (
+                <div className="absolute inset-0 z-[60] flex items-center justify-center bg-black/10 backdrop-blur-[2px] animate-in fade-in duration-200">
+                    <div className="bg-white rounded-xl shadow-2xl border border-border p-8 w-[360px] text-center transform scale-100 animate-in zoom-in-95 duration-200">
+                        <div className="w-16 h-16 bg-green-50 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm border border-green-100">
+                            <Check size={32} />
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">Saved Successfully</h3>
+                        <p className="text-sm text-gray-500">
+                            {initialData ? 'Company details have been updated.' : 'New portfolio company created.'}
+                        </p>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

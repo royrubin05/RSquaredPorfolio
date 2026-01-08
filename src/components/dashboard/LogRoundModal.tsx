@@ -74,7 +74,7 @@ export function LogRoundModal({ checkIfOpen, onClose, companyName, onSave, initi
     // Allocations
     const addAllocation = () => setAllocations([...allocations, { id: Math.random().toString(), fundId: '', amount: '', shares: '', ownership: '' }]);
     const removeAllocation = (id: string) => setAllocations(allocations.filter(a => a.id !== id));
-    const updateAllocation = (id: string, field: keyof Allocation, value: string) => setAllocations(allocations.map(a => a.id === id ? { ...a, [field]: value } : a));
+    const updateAllocation = (id: string, field: keyof Allocation, value: string) => setAllocations(prev => prev.map(a => a.id === id ? { ...a, [field]: value } : a));
 
     // Final Save
     const handleLogRound = () => {
@@ -363,7 +363,7 @@ function StepRoundTerms(props: any) {
         <div className="space-y-8 max-w-2xl mx-auto animate-in fade-in slide-in-from-left-2 duration-200">
             <div className="text-center space-y-1 mb-6">
                 <h3 className="text-lg font-semibold text-foreground">Round Terms</h3>
-                <p className="text-sm text-muted-foreground">Define the market reality of this financing event.</p>
+
             </div>
 
             {/* 1. Common Fields */}
@@ -580,30 +580,36 @@ function StepPosition({ participated, setParticipated, allocations, addAllocatio
 
 
     const handleAllocationChange = (id: string, field: keyof Allocation, value: string) => {
-        // Format if Amount or Shares
-        let formatted = value;
-        if (field === 'amount' || field === 'shares') {
-            const raw = value.replace(/,/g, '');
-            if (raw === '') {
-                formatted = '';
-            } else if (!isNaN(Number(raw)) || raw.endsWith('.')) {
-                const parts = raw.split('.');
-                parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-                formatted = parts.join('.');
-            } else {
-                return; // Invalid char, ignore
-            }
+        // 1. Clean Input (Allow numbers and decimals only)
+        const cleanValue = value.replace(/[^0-9.]/g, '');
+
+        // Prevent multiple dots
+        if ((cleanValue.match(/\./g) || []).length > 1) return;
+
+        // 2. Format with Commas (for display in Amount field)
+        let formatted = cleanValue;
+        if (cleanValue) {
+            const parts = cleanValue.split('.');
+            parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+            formatted = parts.join('.');
         }
+
+        // Update the field (Amount) with formatted value
         updateAllocation(id, field, formatted);
 
-        // Auto-calculate shares if Amount changes and we have a valid PPS
+        // 3. Auto-calculate Shares (only if field is amount)
         if (field === 'amount') {
-            const rawAmount = formatted.replace(/,/g, '');
-            const rawPps = pps.replace(/[$,]/g, '');
-            if (rawAmount && rawPps && !isNaN(Number(rawAmount)) && !isNaN(Number(rawPps)) && Number(rawPps) !== 0) {
-                const calculatedShares = Number(rawAmount) / Number(rawPps);
-                // initial simple formatting
-                updateAllocation(id, 'shares', Math.floor(calculatedShares).toString());
+            // Safe PPS extraction
+            const cleanPps = (pps || '').toString().replace(/[^0-9.]/g, '');
+
+            // If we have valid amount AND valid PPS
+            if (cleanValue && cleanPps && Number(cleanPps) !== 0 && !isNaN(Number(cleanValue))) {
+                const shares = Number(cleanValue) / Number(cleanPps);
+                // Update shares (using floor + locale string for nice number format)
+                updateAllocation(id, 'shares', Math.floor(shares).toLocaleString());
+            } else {
+                // RESET SHARES if Amount is cleared or invalid
+                updateAllocation(id, 'shares', '');
             }
         }
     };
@@ -726,7 +732,7 @@ function StepPosition({ participated, setParticipated, allocations, addAllocatio
                                 className="flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80 px-2 py-1 rounded transition-colors"
                             >
                                 <Plus size={14} />
-                                Add Another Fund
+                                Select Fund
                             </button>
                         </div>
                     </div>
