@@ -49,7 +49,7 @@ export function LogRoundModal({ checkIfOpen, onClose, companyName, onSave, initi
 
 
     // --- STATE: STEP 2 (Our Position) ---
-    const [participated, setParticipated] = useState(initialData?.position?.participated ?? true);
+    const [participated, setParticipated] = useState(initialData?.position?.participated ?? false);
     const [allocations, setAllocations] = useState<Allocation[]>(initialData?.position?.allocations || [
         { id: '1', fundId: '', amount: '', shares: '', ownership: '' }
     ]);

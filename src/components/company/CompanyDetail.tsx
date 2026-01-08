@@ -1,7 +1,7 @@
 "use client";
 
 import { Calendar, DollarSign, Users, Plus, TrendingUp, FileText, X, StickyNote, Trash2 } from "lucide-react";
-import { deleteRound } from "@/app/actions";
+import { deleteRound, upsertRound } from "@/app/actions";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { LogRoundModal } from "../dashboard/LogRoundModal";
@@ -152,6 +152,13 @@ export function CompanyDetail({ initialData }: CompanyDetailProps) {
     const [rounds, setRounds] = useState<Round[]>(initialData?.rounds || []);
     const [notes, setNotes] = useState<Note[]>([]);
 
+    // Sync state with server data on refresh
+    useEffect(() => {
+        if (initialData?.rounds) {
+            setRounds(initialData.rounds);
+        }
+    }, [initialData]);
+
     // Derived Metrics
     const totalRaised = rounds.reduce((sum, r) => {
         let val = r.capitalRaised?.replace(/[$,]/g, '') || '0';
@@ -241,50 +248,23 @@ export function CompanyDetail({ initialData }: CompanyDetailProps) {
 
     // Save Handlers
     // Save Handlers
-    const handleSaveRound = (data: any) => {
-        // If data has an ID, it's an update
-        const isUpdate = !!editingRoundData;
+    const handleSaveRound = async (data: any) => {
+        // Optimistic update or just wait for server?
+        // Let's wait for server for robust data consistency.
 
-        // Calculate R-Squared Investment amount from allocations if participated
-        let rSquaredInvested = 0;
-        if (data.position?.participated && data.position.allocations) {
-            rSquaredInvested = data.position.allocations.reduce((sum: number, alloc: any) => {
-                const amount = parseFloat(alloc.amount?.replace(/[$,]/g, '') || '0');
-                return sum + (isNaN(amount) ? 0 : amount);
-            }, 0);
+        if (!initialData?.id) {
+            alert("Error: Company ID missing.");
+            return;
         }
 
-        const roundToSave: Round = {
-            id: isUpdate ? editingRoundData.id : Math.random().toString(36).substr(2, 9),
-            round: data.roundTerms.stage || "New Round",
-            date: data.roundTerms.date || new Date().toLocaleDateString(),
-            valuation: data.roundTerms.valuation || "-",
-            pps: data.roundTerms.pps || "-",
-            capitalRaised: data.roundTerms.capitalRaised || "-",
-            lead: data.syndicate.leads[0] || "Unknown",
-            documents: data.roundTerms.documents || [],
-            participated: data.position?.participated,
-            rSquaredInvestedAmount: rSquaredInvested,
-            allocations: data.position?.allocations || [],
-            hasWarrants: data.position?.hasWarrants,
-            warrantTerms: data.position?.hasWarrants ? {
-                coverage: data.position.warrantCoverage,
-                coverageType: data.position.warrantCoverageType,
-                expirationDate: data.position.warrantExpiration
-            } : undefined
-        };
+        const result = await upsertRound(data, initialData.id);
 
-        let updatedRounds;
-        if (isUpdate) {
-            updatedRounds = rounds.map(r => r.id === roundToSave.id ? roundToSave : r);
-        } else {
-            updatedRounds = [roundToSave, ...rounds];
+        if (result.error) {
+            alert(result.error);
+            return;
         }
 
-        setRounds(updatedRounds);
-        localStorage.setItem("company_rounds_nimble_types", JSON.stringify(updatedRounds));
-
-        // Reset and close
+        router.refresh();
         setEditingRoundData(null);
         setIsLogRoundOpen(false);
     };
@@ -315,7 +295,7 @@ export function CompanyDetail({ initialData }: CompanyDetailProps) {
 
     const handleNotesChange = (newNotes: Note[]) => {
         setNotes(newNotes);
-        localStorage.setItem("company_notes_nimble_types", JSON.stringify(newNotes));
+
     };
 
     return (
@@ -327,7 +307,7 @@ export function CompanyDetail({ initialData }: CompanyDetailProps) {
                         setIsLogRoundOpen(false);
                         setEditingRoundData(null);
                     }}
-                    companyName="Nimble Types"
+                    companyName={companyName}
                     onSave={handleSaveRound}
                     initialData={editingRoundData}
                 />
