@@ -105,7 +105,8 @@ export function CompanyList({ initialCompanies = [] }: { initialCompanies?: Port
             formationDate: company.formationDate || company.formation_date,
             jurisdiction: company.jurisdiction,
             description: company.description,
-            documents: [] // Todo handle docs
+            documents: [], // Todo handle docs
+            status: company.status || 'Active'
         });
         setIsCreateModalOpen(true);
     };

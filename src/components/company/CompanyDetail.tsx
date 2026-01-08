@@ -2,6 +2,7 @@
 
 import { Calendar, DollarSign, Users, Plus, TrendingUp, FileText, X, StickyNote, Trash2 } from "lucide-react";
 import { deleteRound } from "@/app/actions";
+import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { LogRoundModal } from "../dashboard/LogRoundModal";
 import { NotesManager, Note } from "../shared/NotesManager";
@@ -140,6 +141,7 @@ interface CompanyDetailProps {
 }
 
 export function CompanyDetail({ initialData }: CompanyDetailProps) {
+    const router = useRouter();
     const [isLogRoundOpen, setIsLogRoundOpen] = useState(false);
     const [isDocsModalOpen, setIsDocsModalOpen] = useState(false);
     const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
