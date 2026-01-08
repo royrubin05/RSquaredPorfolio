@@ -102,7 +102,7 @@ export function SettingsPage() {
                 initialData={selectedUser}
             />
 
-            <div className="w-full mx-auto max-w-4xl">
+            <div className="w-full max-w-4xl">
                 {/* Page Header */}
                 <div className="mb-8 border-b border-border pb-6">
                     <h1 className="text-2xl font-semibold text-foreground tracking-tight">Settings</h1>

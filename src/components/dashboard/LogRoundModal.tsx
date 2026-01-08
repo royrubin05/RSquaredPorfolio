@@ -189,15 +189,24 @@ export function LogRoundModal({ checkIfOpen, onClose, companyName, onSave, initi
                     </div>
                     <div className={activeTab === 'position' ? 'block' : 'hidden'}>
                         <StepPosition
-                            participated={participated} setParticipated={setParticipated}
-                            allocations={allocations} addAllocation={addAllocation}
-                            removeAllocation={removeAllocation} updateAllocation={updateAllocation}
-                            hasProRata={hasProRata} setHasProRata={setHasProRata}
-                            hasWarrants={hasWarrants} setHasWarrants={setHasWarrants}
-                            warrantCoverage={warrantCoverage} setWarrantCoverage={setWarrantCoverage}
-                            warrantCoverageType={warrantCoverageType} setWarrantCoverageType={setWarrantCoverageType}
-                            warrantExpiration={warrantExpiration} setWarrantExpiration={setWarrantExpiration}
+                            participated={participated}
+                            setParticipated={setParticipated}
+                            allocations={allocations}
+                            addAllocation={addAllocation}
+                            removeAllocation={removeAllocation}
+                            updateAllocation={updateAllocation}
+                            hasProRata={hasProRata}
+                            setHasProRata={setHasProRata}
+                            hasWarrants={hasWarrants}
+                            setHasWarrants={setHasWarrants}
+                            warrantCoverage={warrantCoverage}
+                            setWarrantCoverage={setWarrantCoverage}
+                            warrantCoverageType={warrantCoverageType}
+                            setWarrantCoverageType={setWarrantCoverageType}
+                            warrantExpiration={warrantExpiration}
+                            setWarrantExpiration={setWarrantExpiration}
                             structure={structure}
+                            pps={pps}
                         />
                     </div>
                     <div className={activeTab === 'syndicate' ? 'block' : 'hidden'}>
@@ -503,7 +512,6 @@ function StepRoundTerms(props: any) {
                                 className="w-full pl-7 pr-4 py-2 border border-purple-200 rounded-md text-sm font-mono focus:ring-purple-500"
                             />
                         </div>
-                        <p className="text-xs text-muted-foreground">Driver for portfolio valuation engine.</p>
                     </div>
                 </div >
             )}
@@ -565,9 +573,10 @@ interface StepPositionProps {
     warrantExpiration: string;
     setWarrantExpiration: (v: string) => void;
     structure: string;
+    pps: string;
 }
 
-function StepPosition({ participated, setParticipated, allocations, addAllocation, removeAllocation, updateAllocation, hasProRata, setHasProRata, hasWarrants, setHasWarrants, warrantCoverage, setWarrantCoverage, warrantCoverageType, setWarrantCoverageType, warrantExpiration, setWarrantExpiration, structure }: StepPositionProps) {
+function StepPosition({ participated, setParticipated, allocations, addAllocation, removeAllocation, updateAllocation, hasProRata, setHasProRata, hasWarrants, setHasWarrants, warrantCoverage, setWarrantCoverage, warrantCoverageType, setWarrantCoverageType, warrantExpiration, setWarrantExpiration, structure, pps }: StepPositionProps) {
 
 
     const handleAllocationChange = (id: string, field: keyof Allocation, value: string) => {
@@ -586,6 +595,17 @@ function StepPosition({ participated, setParticipated, allocations, addAllocatio
             }
         }
         updateAllocation(id, field, formatted);
+
+        // Auto-calculate shares if Amount changes and we have a valid PPS
+        if (field === 'amount') {
+            const rawAmount = formatted.replace(/,/g, '');
+            const rawPps = pps.replace(/[$,]/g, '');
+            if (rawAmount && rawPps && !isNaN(Number(rawAmount)) && !isNaN(Number(rawPps)) && Number(rawPps) !== 0) {
+                const calculatedShares = Number(rawAmount) / Number(rawPps);
+                // initial simple formatting
+                updateAllocation(id, 'shares', Math.floor(calculatedShares).toString());
+            }
+        }
     };
 
     return (

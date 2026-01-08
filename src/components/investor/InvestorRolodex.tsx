@@ -3,7 +3,8 @@
 import { Search, Plus, X, Tag } from "lucide-react";
 import { useState } from "react";
 
-import { MOCK_INVESTORS } from "../../lib/constants";
+import { MOCK_INVESTORS, INITIAL_COMPANIES } from "../../lib/constants";
+import Link from "next/link";
 
 // Mock Data
 const INITIAL_INVESTORS = MOCK_INVESTORS;
@@ -84,11 +85,18 @@ export function InvestorRolodex() {
                                     <td className="px-6 py-4">
                                         <div className="flex flex-wrap gap-2">
                                             {inv.deals && inv.deals.length > 0 ? (
-                                                inv.deals.map((deal, idx) => (
-                                                    <span key={idx} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
-                                                        {deal}
-                                                    </span>
-                                                ))
+                                                inv.deals.map((deal, idx) => {
+                                                    const company = INITIAL_COMPANIES.find(c => c.name === deal);
+                                                    return company ? (
+                                                        <Link key={idx} href={`/companies/${company.id}`} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100 hover:bg-blue-100 hover:text-blue-800 transition-colors">
+                                                            {deal}
+                                                        </Link>
+                                                    ) : (
+                                                        <span key={idx} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">
+                                                            {deal}
+                                                        </span>
+                                                    )
+                                                })
                                             ) : (
                                                 <span className="text-muted-foreground text-xs italic">No common deals recorded</span>
                                             )}

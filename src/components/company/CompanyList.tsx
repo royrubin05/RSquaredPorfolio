@@ -8,12 +8,8 @@ import { CompanyCreationModal, CompanyData } from "../dashboard/CompanyCreationM
 import { upsertCompany, deleteCompany, getCompanyStatuses, saveCompanyStatuses } from "@/app/actions";
 
 // Mock Data with Fund Associations
-const INITIAL_COMPANIES = [
-    { id: '1', name: "Nimble Types", status: "Active", industry: "AI / Legal", stage: "Series B", invested: 3700000, ownership: "12.5%", funds: ["Fund I", "Fund II"], country: "USA", oneLiner: "Legal AI automation platform.", category: "AI" },
-    { id: '2', name: "Blue Ocean", status: "Active", industry: "Robotics", stage: "Series A", invested: 1500000, ownership: "8.2%", funds: ["Fund I"], country: "Denmark", oneLiner: "Autonomous underwater drones.", category: "Infra" },
-    { id: '3', name: "Vertex AI", status: "Active", industry: "Infrastructure", stage: "Seed", invested: 1200000, ownership: "15.0%", funds: ["Fund II"], country: "Israel", oneLiner: "Next-gen GPU orchestration.", category: "AI" },
-    { id: '4', name: "Darktrace", status: "Exit", industry: "Cybersecurity", stage: "IPO", invested: 5000000, ownership: "0.0%", funds: ["Fund I"], country: "UK", oneLiner: "AI-powered cyber defense.", category: "SaaS" },
-];
+// Mock Data with Fund Associations
+import { INITIAL_COMPANIES } from "../../lib/constants";
 
 // Countries List
 const FUNDS = ["All Funds", "Fund I", "Fund II", "Fund III"];
