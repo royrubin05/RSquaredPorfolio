@@ -232,7 +232,14 @@ export async function getCompanyDetails(id: string) {
 
         return {
             ...company,
-            rounds: mappedRounds
+            rounds: mappedRounds,
+            documents: documents?.map(d => ({
+                id: d.id,
+                name: d.name,
+                type: d.file_type || 'DOC',
+                size: d.size_bytes ? `${(d.size_bytes / 1024).toFixed(0)} KB` : ' - ',
+                date: new Date(d.created_at).toLocaleDateString()
+            })) || []
         };
     } catch (err) {
         console.error('Exception fetching company details:', err);

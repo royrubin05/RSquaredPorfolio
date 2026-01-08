@@ -372,30 +372,18 @@ export function CompanyDetail({ initialData, funds = [] }: CompanyDetailProps) {
                             <h3 className="text-sm font-semibold text-foreground">Company Documents</h3>
                             <button onClick={() => setIsDocsModalOpen(false)} className="text-muted-foreground hover:text-foreground"><X size={18} /></button>
                         </div>
-                        <div className="p-6 overflow-y-auto space-y-8">
-                            <div>
-                                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">General Resources</h4>
-                                <ul className="space-y-2">
-                                    <DocItem name="Investor Deck (Oct 2024)" type="PDF" size="12 MB" />
-                                    <DocItem name="Company One-Pager" type="PDF" size="1.2 MB" />
-                                    <DocItem name="Brand Assets" type="ZIP" size="45 MB" />
-                                </ul>
-                            </div>
-                            <div>
-                                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Financing Documents</h4>
-                                <div className="space-y-4">
-                                    {rounds.map((round) => (
-                                        <div key={round.id}>
-                                            <div className="text-xs font-medium text-foreground mb-1">{round.round} ({round.date})</div>
-                                            <ul className="space-y-2 border-l-2 border-border pl-3">
-                                                {round.documents.map((doc, idx) => (
-                                                    <DocItem key={idx} name={doc.name} type={doc.type} size={doc.size} />
-                                                ))}
-                                            </ul>
-                                        </div>
-                                    ))}
+                        <div className="p-6 overflow-y-auto space-y-4">
+                            {(!initialData.documents || initialData.documents.length === 0) ? (
+                                <div className="text-center py-8 text-muted-foreground text-sm">
+                                    No documents found for this company.
                                 </div>
-                            </div>
+                            ) : (
+                                <ul className="space-y-2">
+                                    {initialData.documents.map((doc: any, idx: number) => (
+                                        <DocItem key={idx} name={doc.name} type={doc.type} size={doc.size} />
+                                    ))}
+                                </ul>
+                            )}
                         </div>
                         <div className="px-6 py-4 border-t border-border bg-gray-50/50 flex justify-end">
                             <button
