@@ -1,11 +1,11 @@
 "use client";
 
-import { ArrowUpRight, Link as LinkIcon, MoreHorizontal, Filter, Plus, Pencil, FileText, Trash2, Settings } from "lucide-react";
+import { ArrowUpRight, Link as LinkIcon, MoreHorizontal, Filter, Plus, Pencil, FileText, Trash2 } from "lucide-react";
 import Link from 'next/link';
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { CompanyCreationModal, CompanyData } from "../dashboard/CompanyCreationModal";
-import { upsertCompany, deleteCompany, getCompanyStatuses, saveCompanyStatuses } from "@/app/actions";
+import { upsertCompany, deleteCompany, getCompanyStatuses } from "@/app/actions";
 
 // Mock Data with Fund Associations
 // Mock Data with Fund Associations
@@ -47,7 +47,6 @@ export function CompanyList({ initialCompanies = [] }: { initialCompanies?: Port
 
     // Status Settings
     const [statuses, setStatuses] = useState<string[]>(['Active', 'Watchlist', 'Exit', 'Shutdown']);
-    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
     // Load from Props on Mount (Server Data Priority)
     useEffect(() => {
@@ -134,12 +133,7 @@ export function CompanyList({ initialCompanies = [] }: { initialCompanies?: Port
         }
     };
 
-    // Settings Handler
-    const handleSaveStatuses = async (newStatuses: string[]) => {
-        await saveCompanyStatuses(newStatuses);
-        setStatuses(newStatuses);
-        setIsSettingsOpen(false);
-    };
+
 
     if (isLoading) {
         return <div className="p-8 text-center text-muted-foreground">Loading portfolio...</div>;
@@ -155,54 +149,7 @@ export function CompanyList({ initialCompanies = [] }: { initialCompanies?: Port
                 availableStatuses={statuses}
             />
 
-            {/* Simple Settings Modal */}
-            {isSettingsOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-                    <div className="w-[400px] bg-white rounded-xl shadow-2xl p-6">
-                        <h2 className="text-lg font-semibold mb-4">Company Status Settings</h2>
-                        <div className="space-y-2 mb-4">
-                            {statuses.map((s, idx) => (
-                                <div key={idx} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                                    <span className="text-sm">{s}</span>
-                                    <button onClick={() => handleSaveStatuses(statuses.filter(st => st !== s))} className="text-red-500 hover:text-red-700">
-                                        <Trash2 size={14} />
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
-                        <div className="flex gap-2">
-                            <input
-                                id="new-status"
-                                placeholder="New Status..."
-                                className="flex-1 px-3 py-2 border rounded text-sm"
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                        const val = e.currentTarget.value.trim();
-                                        if (val && !statuses.includes(val)) {
-                                            handleSaveStatuses([...statuses, val]);
-                                            e.currentTarget.value = '';
-                                        }
-                                    }
-                                }}
-                            />
-                            <button
-                                onClick={() => {
-                                    const input = document.getElementById('new-status') as HTMLInputElement;
-                                    const val = input.value.trim();
-                                    if (val && !statuses.includes(val)) {
-                                        handleSaveStatuses([...statuses, val]);
-                                        input.value = '';
-                                    }
-                                }}
-                                className="bg-primary text-white px-3 py-2 rounded text-sm"
-                            >Add</button>
-                        </div>
-                        <div className="mt-6 flex justify-end">
-                            <button onClick={() => setIsSettingsOpen(false)} className="text-muted-foreground text-sm hover:underline">Close</button>
-                        </div>
-                    </div>
-                </div>
-            )}
+
             <div className="w-full mx-auto">
                 {/* Page Header */}
                 <div className="mb-6 flex justify-between items-end">
@@ -219,13 +166,7 @@ export function CompanyList({ initialCompanies = [] }: { initialCompanies?: Port
                             <Plus size={16} />
                             <span>New Company</span>
                         </button>
-                        <button
-                            onClick={() => setIsSettingsOpen(true)}
-                            className="flex items-center gap-2 px-3 py-2 bg-white border border-border text-foreground text-sm font-medium rounded-md hover:bg-gray-50 transition-colors shadow-sm"
-                            title="Manage Statuses"
-                        >
-                            <Settings size={16} />
-                        </button>
+
                         <div className="relative">
                             <Filter size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                             <select

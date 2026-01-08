@@ -234,15 +234,7 @@ export function CompanyDetail({ initialData }: CompanyDetailProps) {
     });
     // ...
 
-    // Load from LocalStorage (Optional: Merge or Override?)
-    // For now, let's prioritize Server Data to fix the "disconnect". 
-    // We can comment out LocalStorage loading to ensure we see DB data.
-    /* 
-    useEffect(() => {
-        const savedRounds = localStorage.getItem(`company_rounds_${companyName}`);
-        if (savedRounds) setRounds(JSON.parse(savedRounds));
-    }, [companyName]);
-    */
+
 
     // ... (rest of handlers)
 

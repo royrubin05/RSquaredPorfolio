@@ -1,11 +1,12 @@
 "use client";
 
-import { Plus, Wallet, Edit2, Trash2, X, Check, Layers, Users } from "lucide-react";
+import { Plus, Wallet, Edit2, Trash2, X, Check, Layers, Users, Activity } from "lucide-react";
 import { useState } from "react";
 import { INITIAL_FUNDS, INITIAL_INDUSTRIES } from "../../lib/constants";
+import { CompanyStatusSettings } from "./CompanyStatusSettings";
 
 export function SettingsPage() {
-    const [activeTab, setActiveTab] = useState<'funds' | 'industries' | 'users'>('funds');
+    const [activeTab, setActiveTab] = useState<'funds' | 'industries' | 'users' | 'statuses'>('funds');
 
     // Data State
     const [funds, setFunds] = useState(INITIAL_FUNDS);
@@ -130,10 +131,19 @@ export function SettingsPage() {
                         label="User Management"
                         icon={<Users size={16} />}
                     />
+                    <TabButton
+                        active={activeTab === 'statuses'}
+                        onClick={() => setActiveTab('statuses')}
+                        label="Company Statuses"
+                        icon={<Activity size={16} />}
+                    />
                 </div>
 
                 {/* Tab Content */}
                 <div className="min-h-[400px]">
+
+                    {/* STATUSES TAB */}
+                    {activeTab === 'statuses' && <CompanyStatusSettings />}
 
                     {/* FUNDS TAB */}
                     {activeTab === 'funds' && (
