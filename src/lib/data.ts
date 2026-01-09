@@ -149,8 +149,7 @@ export async function getPortfolioOverview() {
         kpis: {
             totalAum,
             capitalDeployed,
-            totalAum,
-            capitalDeployed,
+
             activeCompanies: activeCompanies || 0,
             roundsCount
         },
