@@ -38,7 +38,7 @@ interface Round {
     hasWarrants?: boolean;
     // SAFE / Convertible Note Terms
     valuationCap?: string;
-    valuationCap?: string;
+
     discount?: string;
     originalSafeTerms?: any;
     // ...
