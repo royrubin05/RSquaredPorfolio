@@ -61,7 +61,7 @@ export function CompanyList({ initialCompanies = [], initialFunds = [] }: { init
                 category: c.sector,
                 stage: c.stage,
                 invested: c.invested, // already number
-                ownership_percentage: c.ownership, // Map to UI expectation
+                ownership: c.ownership, // Map to UI expectation
                 funds: c.fundNames,
                 country: c.country,
                 oneLiner: "", // Not yet in DB schema fully utilized
