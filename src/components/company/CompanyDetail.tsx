@@ -330,7 +330,8 @@ export function CompanyDetail({ initialData, funds = [] }: CompanyDetailProps) {
             }
 
             // Accumulate ownership
-            const allocOwnership = parseFloat(alloc.ownership || '0');
+            // ownership_percentage is number/string in Transaction
+            const allocOwnership = parseFloat(alloc.ownership_percentage?.toString() || alloc.ownership || '0');
             if (!isNaN(allocOwnership)) {
                 fundHoldings[uniqueKey].ownership += allocOwnership;
             }
