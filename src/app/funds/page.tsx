@@ -14,9 +14,10 @@ export default async function FundsPage() {
     const supabase = await createClient();
 
     // 1. Deployed Capital (Sum of transactions cost basis)
+    // 1. Deployed Capital (Sum of transactions cost basis)
     const { data: transactions } = await supabase
         .from('transactions')
-        .select('fund_id, amount_invested, company_id, type');
+        .select('fund_id, amount_invested, type, financing_rounds!inner(company_id)');
 
     // 2. Map metrics to funds
     const funds = fundsRaw.map((fund: any) => {
@@ -29,7 +30,7 @@ export default async function FundsPage() {
             .reduce((sum, t) => sum + (Number(t.amount_invested) || 0), 0);
 
         // Portfolio Count: Unique companies invested in
-        const uniqueCompanies = new Set(fundTx.map(t => t.company_id));
+        const uniqueCompanies = new Set(fundTx.map(t => (t.financing_rounds as any)?.company_id));
         const portfolio_count = uniqueCompanies.size;
 
         return {
