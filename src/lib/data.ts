@@ -277,6 +277,7 @@ export async function getCompanyDetails(id: string) {
         return {
             ...company,
             rounds: mappedRounds,
+            transactions,
             documents: documents?.map(d => ({
                 id: d.id,
                 name: d.name,

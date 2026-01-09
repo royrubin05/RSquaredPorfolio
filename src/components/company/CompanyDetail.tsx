@@ -798,7 +798,7 @@ function RoundEventRow({ round, date, valuation, amountRaised, pps, participated
                 )}
 
                 {/* R-Squared Invested Column (Replaces Badge) */}
-                <div className="w-32 text-right mr-4">
+                <div className="w-32 text-left">
                     <div className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">R-Squared</div>
                     <div className={`font-mono text-sm ${rSquaredInvested && rSquaredInvested > 0 ? 'text-emerald-700 font-semibold' : 'text-gray-300'}`}>
                         {rSquaredInvested && rSquaredInvested > 0 ? formatCurrency(rSquaredInvested.toString(), 'compact') : '—'}
