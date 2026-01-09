@@ -8,6 +8,7 @@ import { LogRoundModal } from "../dashboard/LogRoundModal";
 import { SAFEConversionModal } from "../dashboard/SAFEConversionModal";
 import { NotesManager, Note } from "../shared/NotesManager";
 import { deleteRound, upsertRound, getFunds, convertSafeToEquity, revertSafeToEquity, getEquityTypes } from "@/app/actions";
+import { calculateImpliedValue, formatCurrency, formatCompact, safeParseBytes } from "@/lib/calculations";
 
 
 
@@ -306,9 +307,8 @@ export function CompanyDetail({ initialData, funds = [] }: CompanyDetailProps) {
             }
 
             // Parse
-            const safeParseFloat = (val: any) => parseFloat(String(val).replace(/[^0-9.-]+/g, "")) || 0;
-            const validShares = safeParseFloat(alloc.shares_purchased);
-            const validCost = safeParseFloat(alloc.amount_invested);
+            const validShares = safeParseBytes(alloc.shares_purchased);
+            const validCost = safeParseBytes(alloc.amount_invested);
 
             fundHoldings[uniqueKey].totalShares += validShares;
             fundHoldings[uniqueKey].totalCost += validCost;
@@ -326,13 +326,7 @@ export function CompanyDetail({ initialData, funds = [] }: CompanyDetailProps) {
     // Apply Implied Value Calculation using Latest PPS
     // Apply Implied Value Calculation using Latest PPS
     Object.values(fundHoldings).forEach(holding => {
-        // Validation: If no shares (SAFE) or no valid PPS, default to Cost Basis (1x)
-        // This prevents showing $0 value for SAFEs or incomplete data
-        if (holding.totalShares === 0 || isNaN(latestPps) || latestPps === 0) {
-            holding.impliedValue = holding.totalCost;
-        } else {
-            holding.impliedValue = holding.totalShares * latestPps;
-        }
+        holding.impliedValue = calculateImpliedValue(holding.totalShares, holding.totalCost, latestPps);
     });
 
     console.log('[CompanyDetail] Rounds:', rounds);
@@ -736,19 +730,14 @@ function RoundEventRow({ round, date, valuation, amountRaised, pps, participated
     originalSafeTerms?: any,
     rSquaredInvested?: number
 }) {
-    const formatCurrency = (val: string, type: 'compact' | 'standard' = 'standard') => {
+    const formatCurrencyDisplay = (val: string, type: 'compact' | 'standard' = 'standard') => {
         if (!val || val === '-') return '-';
         const num = parseFloat(val.replace(/[^0-9.-]+/g, ""));
 
         // Return '-' for 0 or NaN to avoid "$0.00" on unpriced rounds
         if (isNaN(num) || num === 0) return '-';
 
-        return new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: 'USD',
-            notation: type === 'compact' ? 'compact' : 'standard',
-            maximumFractionDigits: type === 'compact' ? 1 : 4
-        }).format(num);
+        return type === 'compact' ? formatCompact(num) : formatCurrency(num, { maximumFractionDigits: 4 });
     };
 
     const isSafe = structure === 'SAFE' || round.toLowerCase().includes('safe') || round.toLowerCase().includes('note');
@@ -768,7 +757,7 @@ function RoundEventRow({ round, date, valuation, amountRaised, pps, participated
 
                 <div className="w-24">
                     <div className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">Raised</div>
-                    <div className="font-mono text-sm text-foreground">{amountRaised ? formatCurrency(amountRaised, 'compact') : '-'}</div>
+                    <div className="font-mono text-sm text-foreground">{amountRaised ? formatCurrencyDisplay(amountRaised, 'compact') : '-'}</div>
                 </div>
 
                 {isSafe ? (
@@ -776,7 +765,7 @@ function RoundEventRow({ round, date, valuation, amountRaised, pps, participated
                     <div className="w-48">
                         <div className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">SAFE Terms</div>
                         <div className="font-mono text-xs text-foreground flex flex-col">
-                            <span>{valuationCap ? `Cap: ${formatCurrency(valuationCap, 'compact')}` : 'Uncapped'}</span>
+                            <span>{valuationCap ? `Cap: ${formatCurrencyDisplay(valuationCap, 'compact')}` : 'Uncapped'}</span>
                             {discount && discount !== '0' && <span className="text-muted-foreground">Discount: {discount}%</span>}
                         </div>
                     </div>
@@ -785,12 +774,12 @@ function RoundEventRow({ round, date, valuation, amountRaised, pps, participated
                     <>
                         <div className="w-24">
                             <div className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">Valuation</div>
-                            <div className="font-mono text-sm text-foreground">{formatCurrency(valuation, 'compact')}</div>
+                            <div className="font-mono text-sm text-foreground">{formatCurrencyDisplay(valuation, 'compact')}</div>
                         </div>
 
                         <div className="w-24">
                             <div className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">PPS</div>
-                            <div className="font-mono text-sm text-foreground">{formatCurrency(pps, 'standard')}</div>
+                            <div className="font-mono text-sm text-foreground">{formatCurrencyDisplay(pps, 'standard')}</div>
                         </div>
                     </>
                 )}

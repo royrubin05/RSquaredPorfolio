@@ -2,6 +2,7 @@
 
 import { TrendingUp, DollarSign, Activity, Activity as ActivityIcon } from "lucide-react";
 import { LatestRounds } from "./LatestRounds";
+import { formatCompact } from "@/lib/calculations";
 import { useState } from "react";
 
 export type DashboardProps = {
@@ -23,7 +24,7 @@ export type DashboardProps = {
 
 export function MasterDashboard({ kpis, deployments, latestRounds }: DashboardProps) {
     // Helper to format currency
-    const fmt = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 1, notation: "compact", compactDisplay: "short" }).format(n);
+    const fmt = formatCompact;
 
     return (
         <div className="flex-1 w-full p-6 md:p-8 space-y-8">
@@ -128,7 +129,7 @@ function DeploymentBar({ name, deployed, total, vintage, isSpv }: { name: string
     const isHighUtilization = percent > 85;
 
     // Helper for compact currency
-    const fmt = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: "compact", maximumFractionDigits: 1 }).format(n);
+    const fmt = formatCompact;
 
     return (
         <div className="space-y-2 group">
