@@ -30,7 +30,7 @@ export default function CalculationsPage() {
                     <div className="bg-slate-50 border border-slate-100 rounded-lg p-4 font-mono text-sm space-y-2">
                         <div className="font-bold text-slate-700">Formula:</div>
                         <div className="pl-4 border-l-2 border-slate-300">
-                            IF (Shares > 0 AND Latest_PPS > 0) {'{'}
+                            IF (Shares &gt; 0 AND Latest_PPS &gt; 0) {'{'}
                             <br />
                             &nbsp;&nbsp; Value = Total_Shares * Latest_PPS
                             <br />
