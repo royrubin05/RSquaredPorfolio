@@ -37,7 +37,7 @@ export async function getPortfolioOverview() {
     // 2. KPIs: Capital Deployed (Sum of all Investment Transactions)
     const { data: transactions } = await supabase
         .from('transactions')
-        .select('amount_invested, fund_id, funds(name, vintage, committed_capital), round_id, financing_rounds!inner(company_id)');
+        .select('amount_invested, ownership_percentage, fund_id, funds(name, vintage, committed_capital), round_id, financing_rounds!inner(company_id)');
 
     const capitalDeployed = transactions?.reduce((sum, t) => sum + Number(t.amount_invested), 0) || 0;
 
