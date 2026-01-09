@@ -788,7 +788,7 @@ function RoundEventRow({ round, date, valuation, amountRaised, pps, participated
                 <div className="w-32 text-left">
                     <div className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">R-Squared</div>
                     <div className={`font-mono text-sm ${rSquaredInvested && rSquaredInvested > 0 ? 'text-emerald-700 font-semibold' : 'text-gray-300'}`}>
-                        {rSquaredInvested && rSquaredInvested > 0 ? formatCurrency(rSquaredInvested.toString(), 'compact') : '—'}
+                        {rSquaredInvested && rSquaredInvested > 0 ? formatCompact(rSquaredInvested) : '—'}
                     </div>
                 </div>
 
