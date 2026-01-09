@@ -245,7 +245,7 @@ export async function getCompanyDetails(id: string) {
                 participated,
                 rSquaredInvestedAmount: roundTx?.reduce((sum, t) => sum + Number(t.amount_invested), 0) || 0,
                 allocations,
-                allocations,
+                originalSafeTerms: r.original_safe_terms,
                 hasWarrants,
                 warrantTerms: hasWarrants ? {
                     coverage: warrantTx?.warrant_coverage_percentage?.toString() || "0",

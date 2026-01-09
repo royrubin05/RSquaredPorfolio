@@ -144,6 +144,16 @@ export async function deleteCompany(id: string) {
 
 export async function deleteRound(id: string) {
     const supabase = await createClient()
+
+    // Delete associated transactions first to satisfy FK constraint
+    const { error: txError } = await supabase.from('transactions').delete().eq('round_id', id);
+    if (txError) {
+        console.error('Error deleting round transactions:', txError);
+        return { error: txError.message };
+    }
+
+    // Delete associated logs/updates if any? (Assuming just transactions for now)
+
     const { error } = await supabase.from('financing_rounds').delete().eq('id', id)
     if (error) {
         console.error('Error deleting round:', error)
@@ -456,7 +466,7 @@ export async function getLatestRounds() {
             round_size,
             company:companies(id, name, sector)
         `)
-        .order('close_date', { ascending: false })
+        .order('created_at', { ascending: false })
         .limit(10);
 
     if (error) {
@@ -731,5 +741,127 @@ export async function deleteEquityType(id: string) {
     const { error } = await supabase.from('equity_types').delete().eq('id', id);
     if (error) return { error: error.message };
     revalidatePath('/settings');
+    return { success: true };
+}
+
+// --- SAFE Conversion ---
+
+export async function convertSafeToEquity(params: {
+    roundId: string;
+    pps: number;
+    equityType: string;
+    valuation: number | null;
+    resultingShares: number;
+}) {
+    const supabase = await createClient();
+
+    // 1. Fetch Current Round & Transactions
+    const { data: round, error: rErr } = await supabase
+        .from('financing_rounds')
+        .select('*')
+        .eq('id', params.roundId)
+        .single();
+
+    if (rErr || !round) throw new Error('Round not found');
+
+    // 2. Fetch Transactions (for R-Squared / Funds) to update their shares
+    // We assume all transactions in this round are part of the conversion
+    // If there are multiple funds, we need to distribute the "resultingShares" logic or calculate per fund.
+    // The Modal calculated "Total Shares" based on "Total Invested".
+    // We should recalculate per transaction to be precise.
+    const { data: transactions, error: tErr } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('round_id', params.roundId);
+
+    if (tErr) throw new Error('Transactions not found');
+
+    // 3. Backup Original SAFE Terms
+    const backupTerms = {
+        structure: round.structure,
+        valuation_cap: round.valuation_cap,
+        safe_discount: round.safe_discount,
+        post_money_valuation: round.post_money_valuation, // Backup existing valuation if any
+        pps: round.share_price // Likely null for SAFE, but good to keep
+    };
+
+    // 4. Update Round to Equity
+    const { error: updateErr } = await supabase
+        .from('financing_rounds')
+        .update({
+            structure: 'Equity', // Or 'Priced Round' if that's the enum? Standardizing on 'Equity'.
+            share_price: params.pps,
+            post_money_valuation: params.valuation || round.post_money_valuation, // Update if provided
+            original_safe_terms: backupTerms, // Store backup
+            valuation_cap: null, // Clear SAFE terms to avoid confusion? Or keep them? Best to clear or ignoring them in UI.
+            safe_discount: null
+        })
+        .eq('id', params.roundId);
+
+    if (updateErr) {
+        console.error('Error updating round:', updateErr);
+        throw new Error(updateErr.message);
+    }
+
+    // 5. Update Transactions (Calculate Shares per Tx)
+    for (const tx of (transactions || [])) {
+        const shares = Math.floor((Number(tx.amount_invested) || 0) / params.pps);
+        await supabase
+            .from('transactions')
+            .update({
+                number_of_shares: shares,
+                equity_type: params.equityType // "Series Seed Preferred" etc.
+            })
+            .eq('id', tx.id);
+    }
+
+    revalidatePath('/');
+    return { success: true };
+}
+
+export async function revertSafeToEquity(roundId: string) {
+    const supabase = await createClient();
+
+    // 1. Fetch Round
+    const { data: round, error: rErr } = await supabase
+        .from('financing_rounds')
+        .select('*')
+        .eq('id', roundId)
+        .single();
+
+    if (rErr || !round) throw new Error('Round not found');
+
+    const backup = round.original_safe_terms;
+    if (!backup) {
+        return { error: "No backup terms found. Cannot revert." };
+    }
+
+    // 2. Restore Round
+    const { error: updateErr } = await supabase
+        .from('financing_rounds')
+        .update({
+            structure: backup.structure || 'SAFE',
+            valuation_cap: backup.valuation_cap,
+            safe_discount: backup.safe_discount,
+            post_money_valuation: backup.post_money_valuation,
+            share_price: backup.pps,
+            original_safe_terms: null // Clear backup after revert? Or keep history? clearing it implies "Reverted".
+        })
+        .eq('id', roundId);
+
+    if (updateErr) return { error: updateErr.message };
+
+    // 3. Clear Transactions Shares
+    const { error: txErr } = await supabase
+        .from('transactions')
+        .update({
+            number_of_shares: null, // Clear shares
+            equity_type: null // Clear specific priced type
+        })
+        .eq('round_id', roundId);
+
+    if (txErr) return { error: txErr.message };
+
+    revalidatePath('/');
     return { success: true };
 }

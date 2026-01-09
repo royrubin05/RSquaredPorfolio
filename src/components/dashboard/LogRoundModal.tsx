@@ -61,12 +61,20 @@ export function LogRoundModal({ checkIfOpen, isOpen, onClose, companyName, onSav
         if (isOpen || checkIfOpen) {
             setRoundDate(initialData?.roundTerms?.date || "");
             setStage(initialData?.roundTerms?.stage || "");
-            setCapitalRaised(initialData?.roundTerms?.capitalRaised || "");
+
+            // Format Currency Fields on Load
+            const fmt = (val: string) => {
+                if (!val) return "";
+                const num = parseFloat(val.replace(/,/g, ''));
+                return isNaN(num) ? val : num.toLocaleString('en-US');
+            };
+
+            setCapitalRaised(fmt(initialData?.roundTerms?.capitalRaised) || "");
             setStructure(initialData?.roundTerms?.structure || 'Equity');
-            setValuation(initialData?.roundTerms?.valuation || "");
+            setValuation(fmt(initialData?.roundTerms?.valuation) || "");
             setValContext(initialData?.roundTerms?.valContext || 'Post');
-            setPps(initialData?.roundTerms?.pps || "");
-            setValuationCap(initialData?.roundTerms?.valuationCap || "");
+            setPps(initialData?.roundTerms?.pps || ""); // PPS often has many decimals, careful with localeString rounding defaults. Keeping raw for now or standard.
+            setValuationCap(fmt(initialData?.roundTerms?.valuationCap) || "");
             setDiscount(initialData?.roundTerms?.discount || "");
             setDocuments(initialData?.roundTerms?.documents || []);
             setNotes(initialData?.notes || []);

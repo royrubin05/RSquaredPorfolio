@@ -1,11 +1,14 @@
 "use client";
 
-import { Calendar, DollarSign, Users, Plus, TrendingUp, FileText, X, StickyNote, Trash2 } from "lucide-react";
-import { deleteRound, upsertRound, getFunds } from "@/app/actions";
+import { Calendar, DollarSign, Users, Plus, TrendingUp, FileText, X, StickyNote, Trash2, RefreshCw } from "lucide-react";
+
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { LogRoundModal } from "../dashboard/LogRoundModal";
+import { SAFEConversionModal } from "../dashboard/SAFEConversionModal";
 import { NotesManager, Note } from "../shared/NotesManager";
+import { deleteRound, upsertRound, getFunds, convertSafeToEquity, revertSafeToEquity, getEquityTypes } from "@/app/actions";
+
 
 
 interface Allocation {
@@ -35,7 +38,9 @@ interface Round {
     hasWarrants?: boolean;
     // SAFE / Convertible Note Terms
     valuationCap?: string;
+    valuationCap?: string;
     discount?: string;
+    originalSafeTerms?: any;
     // ...
     warrantTerms?: {
         coverage: string;
@@ -187,6 +192,11 @@ export function CompanyDetail({ initialData, funds = [] }: CompanyDetailProps) {
     const [rounds, setRounds] = useState<Round[]>(initialData?.rounds || []);
     const [notes, setNotes] = useState<Note[]>([]);
     const [availableFunds, setAvailableFunds] = useState<{ id: string, name: string }[]>(funds);
+    const [availableEquityTypes, setAvailableEquityTypes] = useState<{ id?: string, name: string }[]>([]);
+
+    // SAFE Conversion State
+    const [isConversionModalOpen, setIsConversionModalOpen] = useState(false);
+    const [conversionRound, setConversionRound] = useState<Round | null>(null);
 
     useEffect(() => {
         if (initialData?.rounds) {
@@ -196,6 +206,7 @@ export function CompanyDetail({ initialData, funds = [] }: CompanyDetailProps) {
 
     useEffect(() => {
         getFunds().then(funds => setAvailableFunds(funds));
+        getEquityTypes().then(types => setAvailableEquityTypes(types));
     }, []);
 
     // Sync state with server data on refresh
@@ -260,43 +271,57 @@ export function CompanyDetail({ initialData, funds = [] }: CompanyDetailProps) {
     const latestPpsRaw = rounds[0]?.pps;
     const latestPps = latestPpsRaw ? parseFloat(latestPpsRaw.replace(/[^0-9.-]+/g, "")) : 0;
 
-    const fundHoldings = rounds.reduce((acc, round) => {
-        if (!round.participated || !round.allocations) return acc;
-        round.allocations.forEach(alloc => {
-            const fundId = alloc.fundId || "Unknown Fund"; // UUID
-            const fundName = alloc.fundName || availableFunds.find(f => f.id === fundId)?.name || 'Unknown Fund';
+    // Group by Fund AND Instrument Type (Common vs Preferred)
+    const fundHoldings: Record<string, {
+        fundName: string;
+        equityType: string;
+        totalShares: number;
+        totalCost: number;
+        ownership: number;
+        instruments: string[];
+        impliedValue?: number; // Added for calculation
+    }> = {};
 
-            if (!acc[fundId]) {
-                acc[fundId] = {
-                    fundId,
-                    fundName, // Store Name for Display
-                    instruments: [],
+    initialData.rounds.forEach((round: any) => { // Assuming initialData.rounds is available
+        // Find Allocations
+        const allocs = initialData.transactions?.filter((t: any) => t.round_id === round.id) || [];
+
+        allocs.forEach((alloc: any) => {
+            const fundId = alloc.funds?.id;
+            const fundName = alloc.funds?.name;
+
+            // Determine Equity Type / Key
+            const typeName = alloc.equityType || (round.structure === 'SAFE' ? 'SAFE' : 'Preferred Equity');
+            const uniqueKey = `${fundId}-${typeName}`; // Grouping Key
+
+            if (!fundHoldings[uniqueKey]) {
+                fundHoldings[uniqueKey] = {
+                    fundName,
+                    equityType: typeName,
                     totalShares: 0,
                     totalCost: 0,
-                    impliedValue: 0
+                    ownership: 0,
+                    instruments: []
                 };
             }
 
-            const valStr = alloc.shares?.replace(/,/g, '') || "0";
-            const costStr = alloc.amount?.replace(/[$,]/g, '') || "0";
-            const sharesMs = parseFloat(valStr);
-            const costMs = parseFloat(costStr);
+            // Parse
+            const safeParseFloat = (val: any) => parseFloat(String(val).replace(/[^0-9.-]+/g, "")) || 0;
+            const validShares = safeParseFloat(alloc.number_of_shares);
+            const validCost = safeParseFloat(alloc.amount_invested);
 
-            const validShares = isNaN(sharesMs) ? 0 : sharesMs;
-            const validCost = isNaN(costMs) ? 0 : costMs;
+            fundHoldings[uniqueKey].totalShares += validShares;
+            fundHoldings[uniqueKey].totalCost += validCost;
 
-            acc[fundId].totalShares += validShares;
-            acc[fundId].totalCost += validCost;
-
-            const typeName = alloc.equityType || (round.structure === 'SAFE' ? 'SAFE' : 'Preferred Equity');
             const instrumentLabel = `${typeName} (${round.round})`;
-            if (!acc[fundId].instruments.includes(instrumentLabel)) {
-                acc[fundId].instruments.push(instrumentLabel);
+            if (!fundHoldings[uniqueKey].instruments.includes(instrumentLabel)) {
+                fundHoldings[uniqueKey].instruments.push(instrumentLabel);
             }
-            acc[fundId].txCount = (acc[fundId].txCount || 0) + 1;
         });
-        return acc;
-    }, {} as Record<string, { fundId: string, fundName: string, instruments: string[], totalShares: number, totalCost: number, impliedValue: number, txCount: number }>);
+    });
+
+    // Convert Map to Array
+    const holdingsList = Object.values(fundHoldings).sort((a, b) => a.fundName.localeCompare(b.fundName));
 
     // Apply Implied Value Calculation using Latest PPS
     Object.values(fundHoldings).forEach(holding => {
@@ -373,6 +398,33 @@ export function CompanyDetail({ initialData, funds = [] }: CompanyDetailProps) {
 
     };
 
+    const handleOpenConversion = (e: React.MouseEvent, round: Round) => {
+        e.stopPropagation();
+        setConversionRound(round);
+        setIsConversionModalOpen(true);
+    };
+
+    const handleConvertConfirm = async (data: any) => {
+        const result = await convertSafeToEquity(data);
+        if (result.success) {
+            router.refresh();
+        } else {
+            alert("Conversion failed. Please check logs.");
+        }
+    };
+
+    const handleRevert = async (e: React.MouseEvent, roundId: string) => {
+        e.stopPropagation();
+        if (!confirm("Are you sure you want to revert this round to SAFE? This will clear all share data.")) return;
+
+        const result = await revertSafeToEquity(roundId);
+        if (result.success) {
+            router.refresh();
+        } else {
+            alert("Revert failed: " + result.error);
+        }
+    };
+
     return (
         <div className="flex-1 w-full p-6 md:p-8 flex flex-col gap-8">
             {isLogRoundOpen && (
@@ -387,6 +439,20 @@ export function CompanyDetail({ initialData, funds = [] }: CompanyDetailProps) {
                     onSave={handleSaveRound}
                     initialData={editingRoundData || undefined}
                     funds={availableFunds}
+                />
+            )}
+
+            {isConversionModalOpen && conversionRound && (
+                <SAFEConversionModal
+                    isOpen={isConversionModalOpen}
+                    onClose={() => {
+                        setIsConversionModalOpen(false);
+                        setConversionRound(null);
+                    }}
+                    companyName={companyName}
+                    round={conversionRound}
+                    onConvert={handleConvertConfirm}
+                    equityTypes={availableEquityTypes}
                 />
             )}
 
@@ -556,18 +622,17 @@ export function CompanyDetail({ initialData, funds = [] }: CompanyDetailProps) {
                                     </td>
                                 </tr>
                             ) : (
-                                Object.values(fundHoldings).map((holding) => (
-                                    <tr key={holding.fundId}>
-                                        <td className="px-6 py-4 text-foreground font-medium align-top">
-                                            {holding.fundName}
-                                            {holding.txCount > 1 && <span className="ml-2 text-[10px] text-red-500 bg-red-50 px-1 py-0.5 rounded border border-red-200">Count: {holding.txCount}</span>}
+                                holdingsList.map((holding, idx) => (
+                                    <tr key={idx} className="border-b border-border/40 last:border-0 hover:bg-slate-50/50 transition-colors">
+                                        <td className="px-6 py-4">
+                                            <div className="font-medium text-foreground">{holding.fundName}</div>
+                                            <div className="text-xs text-muted-foreground mt-0.5">{holding.equityType}</div>
                                         </td>
-                                        <td className="px-6 py-4 align-top space-y-1">
-                                            {holding.instruments.map((inst, idx) => (
-                                                <div key={idx} className="flex items-center gap-1.5">
-                                                    <span className={`w-2 h-2 rounded-full ${inst.includes('SAFE') ? 'bg-blue-500' : 'bg-blue-500'}`}></span>
+                                        <td className="px-6 py-4">
+                                            {holding.instruments.map((inst, i) => (
+                                                <span key={i} className="inline-block px-2 py-0.5 rounded textxs font-medium bg-blue-50 text-blue-700 border border-blue-100 mr-2 mb-1">
                                                     {inst}
-                                                </div>
+                                                </span>
                                             ))}
                                         </td>
                                         <td className="px-6 py-4 text-right font-mono text-muted-foreground align-top space-y-1">
@@ -581,7 +646,7 @@ export function CompanyDetail({ initialData, funds = [] }: CompanyDetailProps) {
                                             <div>{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(holding.totalCost)}</div>
                                         </td>
                                         <td className="px-6 py-4 text-right font-mono text-foreground align-top space-y-1">
-                                            <div>{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(holding.impliedValue)}</div>
+                                            <div>{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(holding.impliedValue || 0)}</div>
                                         </td>
                                     </tr>
                                 ))
@@ -596,7 +661,7 @@ export function CompanyDetail({ initialData, funds = [] }: CompanyDetailProps) {
                                     </td>
                                     <td className="px-6 py-4 text-right font-mono text-foreground underline decoration-double decoration-gray-300 underline-offset-4">
                                         {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(
-                                            Object.values(fundHoldings).reduce((sum, h) => sum + h.impliedValue, 0)
+                                            Object.values(fundHoldings).reduce((sum, h) => sum + (h.impliedValue || 0), 0)
                                         )}
                                     </td>
                                 </tr>
@@ -626,6 +691,9 @@ export function CompanyDetail({ initialData, funds = [] }: CompanyDetailProps) {
                                     discount={round.discount}
                                     id={round.id}
                                     structure={round.structure}
+                                    onConvertRequest={(e) => handleOpenConversion(e, round)}
+                                    originalSafeTerms={round.originalSafeTerms}
+                                    onRevertRequest={(e) => handleRevert(e, round.id)}
                                 />
                             </div>
                         ))}
@@ -651,7 +719,22 @@ function DocItem({ name, type, size }: { name: string; type: string; size: strin
     )
 }
 
-function RoundEventRow({ round, date, valuation, amountRaised, pps, participated, onDelete, valuationCap, discount, id, structure }: { round: string; date: string; valuation: string; amountRaised?: string; pps: string; participated?: boolean, onDelete?: (e: React.MouseEvent) => void, valuationCap?: string, discount?: string, id?: string, structure?: string }) {
+function RoundEventRow({ round, date, valuation, amountRaised, pps, participated, onDelete, valuationCap, discount, id, structure, onConvertRequest, originalSafeTerms, onRevertRequest }: {
+    round: string;
+    date: string;
+    valuation: string;
+    amountRaised?: string;
+    pps: string;
+    participated?: boolean,
+    onDelete?: (e: React.MouseEvent) => void,
+    valuationCap?: string,
+    discount?: string,
+    id?: string,
+    structure?: string,
+    onConvertRequest?: (e: React.MouseEvent, round: Round) => void,
+    onRevertRequest?: (e: React.MouseEvent, roundId: string) => void,
+    originalSafeTerms?: any
+}) {
     const formatCurrency = (val: string, type: 'compact' | 'standard' = 'standard') => {
         if (!val || val === '-') return '-';
         const num = parseFloat(val.replace(/[^0-9.-]+/g, ""));
@@ -711,26 +794,48 @@ function RoundEventRow({ round, date, valuation, amountRaised, pps, participated
                     </>
                 )}
 
-                {/* Participation Badge - Artistic */}
-                <div className="w-40 flex items-center">
+                {/* Participation Badge + Actions */}
+                <div className="w-48 flex items-center gap-3">
                     {participated && (
                         <span className="inline-flex items-center gap-1.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm border border-emerald-400/20 uppercase tracking-wide whitespace-nowrap">
                             <span className="w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)]"></span>
-                            R-Squared Invested
+                            Invested
                         </span>
                     )}
+
+                    {/* SAFE Conversion Buttons */}
+                    {/* SAFE Conversion Buttons */}
+                    <div className="flex gap-2">
+                        {isSafe && onConvertRequest && (
+                            <button
+                                onClick={(e) => onConvertRequest(e, { id, round, date, valuation, pps, documents: [], structure, valuationCap, discount, originalSafeTerms } as Round)}
+                                className="text-xs font-semibold bg-blue-600 text-white px-3 py-1.5 rounded-md hover:bg-blue-700 shadow-sm transition-all flex items-center gap-1.5"
+                            >
+                                <RefreshCw size={12} className="opacity-80" /> Convert
+                            </button>
+                        )}
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                            {originalSafeTerms && onRevertRequest && id && (
+                                <button
+                                    onClick={(e) => onRevertRequest(e, id)}
+                                    className="text-[10px] font-medium bg-amber-50 text-amber-600 px-2 py-1 rounded border border-amber-100 hover:bg-amber-100 transition-colors flex items-center gap-1"
+                                    title="Revert to SAFE"
+                                >
+                                    <RefreshCw size={10} /> Revert
+                                </button>
+                            )}
+                        </div>
+                    </div>
                 </div>
 
             </div>
-            <div className="text-[10px] text-red-500 font-mono mt-1">DEBUG: System v1.2</div>
 
-            {/* Right side spacer or future actions */}
+            {/* Right side Actions */}
             <div className="flex items-center gap-4">
                 {onDelete && (
                     <button
                         onClick={onDelete}
                         className="text-muted-foreground hover:text-red-500 transition-colors p-2 rounded-full hover:bg-red-50 opacity-0 group-hover:opacity-100"
-                        title="Delete Round"
                     >
                         <Trash2 size={16} />
                     </button>

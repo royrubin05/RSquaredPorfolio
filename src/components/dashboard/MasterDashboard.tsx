@@ -135,9 +135,9 @@ function DeploymentBar({ name, deployed, total, vintage, isSpv }: { name: string
                     {vintage && <span className="text-xs text-muted-foreground">({vintage})</span>}
                 </div>
                 <div className="text-right">
-                    <span className="font-mono font-medium text-foreground">${deployed.toFixed(1)}M</span>
+                    <span className="font-mono font-medium text-foreground">${(deployed / 1000000).toFixed(1)}M</span>
                     <span className="text-muted-foreground mx-1">/</span>
-                    <span className="font-mono text-muted-foreground">${total.toFixed(0)}M</span>
+                    <span className="font-mono text-muted-foreground">${(total / 1000000).toFixed(1)}M</span>
                 </div>
             </div>
 
