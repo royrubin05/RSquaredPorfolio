@@ -132,7 +132,7 @@ export function SettingsPage({ initialFunds = [], initialIndustries = [], initia
                 onClose={() => { setIsAddUserOpen(false); setSelectedUser(null); }}
                 onSave={handleAddUser}
                 initialData={selectedUser}
-                initialData={selectedUser}
+
             />
 
             <AddEquityTypeModal
