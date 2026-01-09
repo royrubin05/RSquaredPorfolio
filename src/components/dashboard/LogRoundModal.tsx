@@ -17,6 +17,15 @@ const ROUND_LABELS = [
 ];
 import { DocumentsManager, CompanyDocument } from "../shared/DocumentsManager";
 
+interface Allocation {
+    id: string;
+    fundId: string;
+    amount: string;
+    shares: string;
+    ownership: string;
+    equityType: string;
+}
+
 interface LogRoundModalProps {
     checkIfOpen?: boolean; // made optional to support strict mode if needed, but keeping implementation
     isOpen?: boolean; // Added for compatibility with CompanyDetail usage
