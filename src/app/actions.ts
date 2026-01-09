@@ -507,9 +507,9 @@ export async function getLatestRounds() {
 
         return {
             id: r.id,
-            companyId: r.company?.id,
-            companyName: r.company?.name || 'Unknown',
-            companySector: r.company?.sector,
+            companyId: company?.id,
+            companyName: company?.name || 'Unknown',
+            companySector: company?.sector,
             roundLabel: r.round_label,
             date: r.close_date,
             investedAmount: invested,
