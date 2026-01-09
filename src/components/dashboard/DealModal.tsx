@@ -2,7 +2,16 @@
 
 import { X, ChevronRight, Check, Plus } from "lucide-react";
 import { useState } from "react";
-import { INITIAL_ROUND_LABELS } from "../../lib/constants";
+
+const INITIAL_ROUND_LABELS = [
+    { id: 'pre-seed', name: 'Pre-Seed', order: 1 },
+    { id: 'seed', name: 'Seed', order: 2 },
+    { id: 'series-a', name: 'Series A', order: 3 },
+    { id: 'series-b', name: 'Series B', order: 4 },
+    { id: 'series-c', name: 'Series C', order: 5 },
+    { id: 'bridge', name: 'Bridge', order: 6 },
+    { id: 'safe', name: 'SAFE', order: 7 },
+];
 
 interface DealModalProps {
     checkIfOpen: boolean;
