@@ -55,6 +55,9 @@ CREATE TABLE financing_rounds (
     price_per_share NUMERIC,
     round_size NUMERIC,
     shares_issued NUMERIC,
+    -- SAFE / Convertible Note Terms
+    valuation_cap NUMERIC,
+    safe_discount NUMERIC, -- e.g. 20 for 20%
     drive_folder_id TEXT, -- Google Drive Folder ID for this Round
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -106,6 +109,22 @@ CREATE TABLE documents (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- 8. Team Members / Users
+CREATE TABLE IF NOT EXISTS team_members (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name TEXT NOT NULL,
+    email TEXT NOT NULL,
+    role TEXT DEFAULT 'Viewer', -- 'Admin', 'Viewer'
+    status TEXT DEFAULT 'Active',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 9. Settings (Key-Value Store for Industries, global configs)
+CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value JSONB
+);
+
 -- 8. Notes (Updates & Annotations)
 CREATE TABLE notes (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -119,6 +138,17 @@ CREATE TABLE notes (
 -- Indexes
 CREATE INDEX idx_rounds_company ON financing_rounds(company_id);
 CREATE INDEX idx_tx_fund ON transactions(fund_id);
+
+-- 11. Equity Types (Settings)
+CREATE TABLE IF NOT EXISTS equity_types (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name TEXT NOT NULL UNIQUE,
+    is_default BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Update Transactions to support explicit equity type
+-- ALTER TABLE transactions ADD COLUMN IF NOT EXISTS equity_type TEXT;
 CREATE INDEX idx_tx_round ON transactions(round_id);
 CREATE INDEX idx_docs_company ON documents(company_id);
 CREATE INDEX idx_notes_company ON notes(company_id);

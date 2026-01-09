@@ -214,7 +214,7 @@ export function CompanyList({ initialCompanies = [], initialFunds = [] }: { init
                                 onChange={(e) => setSelectedFund(e.target.value)}
                                 className="pl-9 pr-4 py-2 bg-white border border-border text-foreground text-sm font-medium rounded-md hover:bg-gray-50 transition-colors shadow-sm focus:outline-none focus:ring-1 focus:ring-primary appearance-none cursor-pointer"
                             >
-
+                                <option value="All Funds">All Funds</option>
                                 {funds.map(f => <option key={f.id} value={f.name}>{f.name}</option>)}
                             </select>
                         </div>

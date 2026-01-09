@@ -1,14 +1,15 @@
+import { getFunds, getIndustries, getTeamMembers, getEquityTypes } from "@/app/actions";
 import { SettingsPage } from "@/components/settings/SettingsPage";
-import { getFunds, getIndustries, getTeamMembers } from "@/app/actions";
 
 export const dynamic = 'force-dynamic';
 
 export default async function Page() {
-    const [funds, industries, team] = await Promise.all([
+    const [funds, industries, team, equityTypes] = await Promise.all([
         getFunds(),
         getIndustries(),
-        getTeamMembers()
+        getTeamMembers(),
+        getEquityTypes()
     ]);
 
-    return <SettingsPage initialFunds={funds} initialIndustries={industries} initialTeam={team} />;
+    return <SettingsPage initialFunds={funds} initialIndustries={industries} initialTeam={team} initialEquityTypes={equityTypes} />;
 }

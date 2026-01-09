@@ -15,12 +15,15 @@ interface Allocation {
     amount: string;
     shares: string;
     ownership: string;
+    equityType?: string;
 }
 
 interface Round {
     id: string;
     round: string;
+    structure?: 'SAFE' | 'Equity';
     date: string;
+    rawDate?: string;
     valuation: string;
     pps: string;
     capitalRaised?: string;
@@ -30,6 +33,10 @@ interface Round {
     rSquaredInvestedAmount?: number; // Raw number for calculation
     allocations?: Allocation[];
     hasWarrants?: boolean;
+    // SAFE / Convertible Note Terms
+    valuationCap?: string;
+    discount?: string;
+    // ...
     warrantTerms?: {
         coverage: string;
         coverageType?: 'money' | 'percentage';
@@ -133,11 +140,14 @@ const mapRoundToModalData = (round: Round) => {
     return {
         id: round.id,
         roundTerms: {
-            date: round.date,
+            date: round.rawDate || round.date,
+            structure: round.structure || 'Equity',
             stage: round.round,
             valuation: parseCurrencyString(round.valuation),
             pps: parseCurrencyString(round.pps),
             capitalRaised: parseCurrencyString(round.capitalRaised),
+            valuationCap: parseCurrencyString(round.valuationCap),
+            discount: round.discount || "", // Discount is usually % string or number, keep as is
             // Ensure documents have IDs to fix key warning
             documents: (round.documents || []).map(d => ({
                 ...d,
@@ -222,8 +232,13 @@ export function CompanyDetail({ initialData, funds = [] }: CompanyDetailProps) {
         return sum + (r.rSquaredInvestedAmount || 0);
     }, 0);
     const currentValuation = (() => {
-        const valStr = rounds[0]?.valuation;
-        if (!valStr) return "-";
+        const latestRound = rounds[0];
+        const valStr = latestRound?.valuation;
+        const isSafe = latestRound?.structure === 'SAFE' || latestRound?.round.toLowerCase().includes('safe');
+
+        if (!valStr || valStr === '-' || valStr === '0') {
+            return isSafe ? "SAFE" : "-";
+        }
 
         // Remove currency symbols and commas if present
         const valNum = parseFloat(valStr.replace(/[^0-9.-]+/g, ""));
@@ -273,17 +288,28 @@ export function CompanyDetail({ initialData, funds = [] }: CompanyDetailProps) {
             acc[fundId].totalShares += validShares;
             acc[fundId].totalCost += validCost;
 
-            const instrumentLabel = round.round.includes('SAFE') ? `SAFE (${round.round})` : `Preferred Equity (${round.round})`;
+            const typeName = alloc.equityType || (round.structure === 'SAFE' ? 'SAFE' : 'Preferred Equity');
+            const instrumentLabel = `${typeName} (${round.round})`;
             if (!acc[fundId].instruments.includes(instrumentLabel)) {
                 acc[fundId].instruments.push(instrumentLabel);
             }
+            acc[fundId].txCount = (acc[fundId].txCount || 0) + 1;
         });
         return acc;
-    }, {} as Record<string, { fundId: string, fundName: string, instruments: string[], totalShares: number, totalCost: number, impliedValue: number }>);
+    }, {} as Record<string, { fundId: string, fundName: string, instruments: string[], totalShares: number, totalCost: number, impliedValue: number, txCount: number }>);
 
     // Apply Implied Value Calculation using Latest PPS
     Object.values(fundHoldings).forEach(holding => {
-        holding.impliedValue = holding.totalShares * (isNaN(latestPps) ? 0 : latestPps);
+        // Fix for SAFE / Note structures where PPS might be undefined or meaningless:
+        // If PPS is 0/NaN but we have cost, and it's a SAFE, default to 1x (Implied = Cost).
+        // Check if latest round is SAFE-like logic:
+        const isSafeStructure = rounds[0]?.structure === 'SAFE' || rounds[0]?.round?.toLowerCase().includes('safe') || rounds[0]?.round?.toLowerCase().includes('note');
+
+        if ((isNaN(latestPps) || latestPps === 0) && isSafeStructure) {
+            holding.impliedValue = holding.totalCost; // 1x Val
+        } else {
+            holding.impliedValue = holding.totalShares * (isNaN(latestPps) ? 0 : latestPps);
+        }
     });
 
     console.log('[CompanyDetail] Rounds:', rounds);
@@ -420,7 +446,11 @@ export function CompanyDetail({ initialData, funds = [] }: CompanyDetailProps) {
                     <div className="flex justify-between items-start">
                         <div>
                             <h1 className="text-2xl font-semibold text-foreground tracking-tight">{companyName}</h1>
-                            <p className="text-sm text-muted-foreground mt-1">{companySector} • {companyStage}</p>
+                            <p className="text-sm text-muted-foreground mt-1">
+                                {companySector && companySector !== '-' ? companySector : ''}
+                                {companySector && companySector !== '-' && companyStage && companyStage !== '-' ? ' • ' : ''}
+                                {companyStage !== '-' ? companyStage : ''}
+                            </p>
                         </div>
                         <div className="flex items-center gap-3">
                             <button
@@ -528,7 +558,10 @@ export function CompanyDetail({ initialData, funds = [] }: CompanyDetailProps) {
                             ) : (
                                 Object.values(fundHoldings).map((holding) => (
                                     <tr key={holding.fundId}>
-                                        <td className="px-6 py-4 text-foreground font-medium align-top">{holding.fundName}</td>
+                                        <td className="px-6 py-4 text-foreground font-medium align-top">
+                                            {holding.fundName}
+                                            {holding.txCount > 1 && <span className="ml-2 text-[10px] text-red-500 bg-red-50 px-1 py-0.5 rounded border border-red-200">Count: {holding.txCount}</span>}
+                                        </td>
                                         <td className="px-6 py-4 align-top space-y-1">
                                             {holding.instruments.map((inst, idx) => (
                                                 <div key={idx} className="flex items-center gap-1.5">
@@ -538,7 +571,11 @@ export function CompanyDetail({ initialData, funds = [] }: CompanyDetailProps) {
                                             ))}
                                         </td>
                                         <td className="px-6 py-4 text-right font-mono text-muted-foreground align-top space-y-1">
-                                            <div>{holding.totalShares.toLocaleString()}</div>
+                                            <div>
+                                                {holding.totalShares === 0 && holding.instruments.some(i => i.includes('SAFE'))
+                                                    ? 'SAFE'
+                                                    : holding.totalShares.toLocaleString()}
+                                            </div>
                                         </td>
                                         <td className="px-6 py-4 text-right font-mono text-foreground align-top space-y-1">
                                             <div>{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(holding.totalCost)}</div>
@@ -584,6 +621,11 @@ export function CompanyDetail({ initialData, funds = [] }: CompanyDetailProps) {
                                     pps={round.pps}
                                     participated={round.participated}
                                     onDelete={(e) => handleDeleteRound(e, round.id)}
+                                    // New SAFE Props
+                                    valuationCap={round.valuationCap}
+                                    discount={round.discount}
+                                    id={round.id}
+                                    structure={round.structure}
                                 />
                             </div>
                         ))}
@@ -609,11 +651,13 @@ function DocItem({ name, type, size }: { name: string; type: string; size: strin
     )
 }
 
-function RoundEventRow({ round, date, valuation, amountRaised, pps, participated, onDelete }: { round: string; date: string; valuation: string; amountRaised?: string; pps: string; participated?: boolean, onDelete?: (e: React.MouseEvent) => void }) {
+function RoundEventRow({ round, date, valuation, amountRaised, pps, participated, onDelete, valuationCap, discount, id, structure }: { round: string; date: string; valuation: string; amountRaised?: string; pps: string; participated?: boolean, onDelete?: (e: React.MouseEvent) => void, valuationCap?: string, discount?: string, id?: string, structure?: string }) {
     const formatCurrency = (val: string, type: 'compact' | 'standard' = 'standard') => {
         if (!val || val === '-') return '-';
         const num = parseFloat(val.replace(/[^0-9.-]+/g, ""));
-        if (isNaN(num)) return val;
+
+        // Return '-' for 0 or NaN to avoid "$0.00" on unpriced rounds
+        if (isNaN(num) || num === 0) return '-';
 
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
@@ -623,11 +667,18 @@ function RoundEventRow({ round, date, valuation, amountRaised, pps, participated
         }).format(num);
     };
 
+    const isSafe = structure === 'SAFE' || round.toLowerCase().includes('safe') || round.toLowerCase().includes('note');
+
     return (
         <div className={`px-6 py-4 flex items-center justify-between transition-colors cursor-pointer group ${participated ? 'bg-green-50/30 hover:bg-green-50/50' : 'hover:bg-gray-50/50'}`}>
             <div className="flex items-center gap-6">
                 <div className="w-32">
-                    <div className="font-semibold text-foreground text-sm group-hover:text-primary transition-colors">{round}</div>
+                    <div className="font-semibold text-foreground text-sm group-hover:text-primary transition-colors">
+                        {round}
+                        <span className="ml-2 text-[9px] text-muted-foreground font-mono bg-gray-100 px-1 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity" title={id}>
+                            #{id ? id.slice(0, 4) : '???'}
+                        </span>
+                    </div>
                     <div className="text-xs text-muted-foreground">{date}</div>
                 </div>
 
@@ -636,15 +687,29 @@ function RoundEventRow({ round, date, valuation, amountRaised, pps, participated
                     <div className="font-mono text-sm text-foreground">{amountRaised ? formatCurrency(amountRaised, 'compact') : '-'}</div>
                 </div>
 
-                <div className="w-24">
-                    <div className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">Valuation</div>
-                    <div className="font-mono text-sm text-foreground">{formatCurrency(valuation, 'compact')}</div>
-                </div>
+                {isSafe ? (
+                    // SAFE VIEW: Merged Column or replacing Val/PPS
+                    <div className="w-48">
+                        <div className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">SAFE Terms</div>
+                        <div className="font-mono text-xs text-foreground flex flex-col">
+                            <span>{valuationCap ? `Cap: ${formatCurrency(valuationCap, 'compact')}` : 'Uncapped'}</span>
+                            {discount && discount !== '0' && <span className="text-muted-foreground">Discount: {discount}%</span>}
+                        </div>
+                    </div>
+                ) : (
+                    // STANDARD VIEW
+                    <>
+                        <div className="w-24">
+                            <div className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">Valuation</div>
+                            <div className="font-mono text-sm text-foreground">{formatCurrency(valuation, 'compact')}</div>
+                        </div>
 
-                <div className="w-24">
-                    <div className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">PPS</div>
-                    <div className="font-mono text-sm text-foreground">{formatCurrency(pps, 'standard')}</div>
-                </div>
+                        <div className="w-24">
+                            <div className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">PPS</div>
+                            <div className="font-mono text-sm text-foreground">{formatCurrency(pps, 'standard')}</div>
+                        </div>
+                    </>
+                )}
 
                 {/* Participation Badge - Artistic */}
                 <div className="w-40 flex items-center">
@@ -657,6 +722,7 @@ function RoundEventRow({ round, date, valuation, amountRaised, pps, participated
                 </div>
 
             </div>
+            <div className="text-[10px] text-red-500 font-mono mt-1">DEBUG: System v1.2</div>
 
             {/* Right side spacer or future actions */}
             <div className="flex items-center gap-4">

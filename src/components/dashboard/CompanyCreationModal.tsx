@@ -4,7 +4,7 @@ import { X, Check, FileText, Trash2, Pencil, Upload, Building2, Layout, Globe } 
 import { useState, useRef, useEffect } from "react";
 import { NotesManager, Note } from "../shared/NotesManager";
 import { DocumentsManager, CompanyDocument } from "../shared/DocumentsManager";
-import { getCountries } from "@/app/actions";
+import { getCountries, getCategories } from "@/app/actions";
 
 // ... existing interfaces ...
 
@@ -51,10 +51,11 @@ export function CompanyCreationModal({ checkIfOpen, onClose, initialData, onSave
     const [documents, setDocuments] = useState<CompanyDocument[]>([]);
 
     const [countryList, setCountryList] = useState<string[]>([]);
-    const categoryList = ["AI", "SaaS", "Fintech", "Health", "Consumer", "Enterprise", "Deep Tech", "Crypto", "Real Estate"]; // Hardcoded for now
+    const [categoryList, setCategoryList] = useState<string[]>([]); // Dynamic
 
     useEffect(() => {
         getCountries().then(setCountryList);
+        getCategories().then(setCategoryList);
     }, []);
 
     // ... existing logic ...

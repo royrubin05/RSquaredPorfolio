@@ -37,7 +37,7 @@ export async function getPortfolioOverview() {
     // 2. KPIs: Capital Deployed (Sum of all Investment Transactions)
     const { data: transactions } = await supabase
         .from('transactions')
-        .select('amount_invested, fund_id, funds(name, vintage, committed_capital)');
+        .select('amount_invested, fund_id, funds(name, vintage, committed_capital), round_id, financing_rounds!inner(company_id)');
 
     const capitalDeployed = transactions?.reduce((sum, t) => sum + Number(t.amount_invested), 0) || 0;
 
@@ -50,12 +50,32 @@ export async function getPortfolioOverview() {
     // 4. Deployment Bars
     // Aggregate transactions by Fund
     const deploymentMap = new Map<string, number>();
+    const companyInvestedMap = new Map<string, number>();
+    const companyOwnershipMap = new Map<string, number>();
+
     transactions?.forEach(t => {
+        // Deployment Map (Funds)
         // Supabase sometimes returns relations as arrays even for 1:1 if not explicitly typed
         const fund = Array.isArray(t.funds) ? t.funds[0] : t.funds;
         const fundName = fund?.name || 'Unknown';
         const current = deploymentMap.get(fundName) || 0;
         deploymentMap.set(fundName, current + Number(t.amount_invested));
+
+        // Company Map (Invested & Ownership)
+        // Extract Company ID from nested relation
+        const rounds = Array.isArray(t.financing_rounds) ? t.financing_rounds[0] : t.financing_rounds;
+        const companyId = rounds?.company_id;
+
+        if (companyId) {
+            const currentInvested = companyInvestedMap.get(companyId) || 0;
+            companyInvestedMap.set(companyId, currentInvested + Number(t.amount_invested));
+
+            // Sum ownership? Usually we take MAX ownership from latest round, or SUM if multiple rounds? 
+            // Simplified: Sum of all transaction ownerships (assuming they are incremental or different classes)
+            // Ideally we'd cap at 100% or be smarter, but for now Sum is standard for "Access"
+            const currentOwnership = companyOwnershipMap.get(companyId) || 0;
+            companyOwnershipMap.set(companyId, currentOwnership + (Number(t.ownership_percentage) || 0));
+        }
     });
 
     const deployments: DeploymentMetric[] = funds?.map(f => ({
@@ -92,12 +112,20 @@ export async function getPortfolioOverview() {
         c.financing_rounds?.forEach((r: any) => {
             // Pick latest round label as stage (simplified)
             latestStage = r.round_label;
+
+            // Extract fund names for display
             r.transactions?.forEach((t: any) => {
-                totalInvested += Number(t.amount_invested);
-                totalOwnership += Number(t.ownership_percentage);
                 if (t.funds?.name) fundsSet.add(t.funds.name);
             });
         });
+
+        // Use aggregated values from the flat transaction list (Source of Truth)
+        totalInvested = companyInvestedMap.get(c.id) || 0;
+        // Optional: Use aggregated ownership or stick to current loop?
+        // Let's use aggregated ownership to capture "hidden" transactions too
+        // But the deep loop captures fund names... can we keep both?
+        // Let's use the Map for numbers, and Loop for Strings (Fund Names)
+        totalOwnership = companyOwnershipMap.get(c.id) || 0;
 
         return {
             id: c.id,
@@ -136,7 +164,7 @@ export async function getCompanyDetails(id: string) {
             .single();
 
         if (companyError || !company) {
-            console.error('Error fetching company details:', companyError);
+            console.error('Error fetching company details:', JSON.stringify(companyError, null, 2));
             return null;
         }
 
@@ -189,7 +217,8 @@ export async function getCompanyDetails(id: string) {
                     fundName: fundRel?.name || 'Unknown Fund',
                     amount: t.amount_invested?.toString() || "0",
                     shares: t.shares_purchased?.toString() || "0",
-                    ownership: t.ownership_percentage?.toString() || "0"
+                    ownership: t.ownership_percentage?.toString() || "0",
+                    equityType: t.equity_type
                 };
             }) || [];
 
@@ -197,11 +226,19 @@ export async function getCompanyDetails(id: string) {
             const warrantTx = roundTx?.find(t => t.security_type === 'Warrant');
             const hasWarrants = !!warrantTx;
 
+            // Determine structure based on transactions or existence of SAFE terms
+            const isSafe = roundTx?.some(t => t.security_type === 'SAFE') || !!r.valuation_cap || !!r.safe_discount || r.round_label.toUpperCase().includes('SAFE');
+
             return {
                 id: r.id,
+                structure: isSafe ? 'SAFE' : 'Equity',
                 round: r.round_label,
                 date: new Date(r.close_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+                rawDate: r.close_date, // Pass YYYY-MM-DD for editing
                 valuation: r.post_money_valuation?.toString() || "-",
+                companyId: r.company_id, // Ensure we have this for later if needed
+                valuationCap: r.valuation_cap?.toString(),
+                discount: r.safe_discount?.toString(),
                 pps: r.price_per_share?.toString() || "-",
                 capitalRaised: r.round_size?.toString() || "-",
                 lead: r.round_syndicate?.[0]?.investor?.name || "-",

@@ -46,7 +46,7 @@ export function MasterDashboard({ kpis, deployments, latestRounds }: DashboardPr
                     <KpiCard
                         label="Capital Deployed"
                         value={fmt(kpis.capitalDeployed)}
-                        subtext={`${((kpis.capitalDeployed / kpis.totalAum) * 100).toFixed(1)}% of Committed Capital`}
+                        subtext=""
                         icon={<TrendingUp size={18} className="text-primary" />}
                     />
                     <KpiCard

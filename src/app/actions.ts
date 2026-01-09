@@ -251,6 +251,8 @@ export async function upsertRound(data: any, companyId: string) {
         post_money_valuation: cleanCurrency(data.roundTerms.valuation),
         price_per_share: cleanCurrency(data.roundTerms.pps),
         round_size: cleanCurrency(data.roundTerms.capitalRaised),
+        valuation_cap: cleanCurrency(data.roundTerms.valuationCap),
+        safe_discount: cleanCurrency(data.roundTerms.discount),
         // created_at? handled by default
     };
 
@@ -342,7 +344,8 @@ export async function upsertRound(data: any, companyId: string) {
                     amount_invested: cleanCurrency(alloc.amount),
                     shares_purchased: cleanCurrency(alloc.shares),
                     ownership_percentage: cleanCurrency(alloc.ownership),
-                    security_type: 'Equity' // Default
+                    security_type: data.roundTerms.structure === 'SAFE' ? 'SAFE' : 'Equity',
+                    equity_type: alloc.equityType || null // Save the specific instrument name
                 });
             }
         }
@@ -622,7 +625,7 @@ export async function getTeamMembers() {
     const { data, error } = await supabase.from('team_members').select('*').order('created_at', { ascending: true });
 
     if (error) {
-        console.error('Error fetching team:', error);
+        console.error('Error fetching team:', JSON.stringify(error, null, 2));
         // Fallback or empty if table table doesn't exist yet (migration pending)
         return [];
     }
@@ -687,4 +690,46 @@ export async function searchInvestors(query: string) {
     }
 
     return data || [];
+}
+
+// --- Settings: Equity Types ---
+
+export async function getEquityTypes() {
+    try {
+        const supabase = await createClient();
+        const { data, error } = await supabase.from('equity_types').select('*').order('name');
+        if (error) {
+            console.error('Error fetching equity types:', error);
+            // Return empty if table doesn't exist yet to prevent crashes
+            return [];
+        }
+        return data || [];
+    } catch (err: any) {
+        console.error('Exception fetching equity types:', err);
+        return [];
+    }
+}
+
+export async function upsertEquityType(data: { id?: string; name: string; is_default?: boolean }) {
+    const supabase = await createClient();
+    if (!data.name || data.name.trim().length < 2) return { error: 'Invalid name' };
+
+    const payload: any = { name: data.name };
+    if (data.id) payload.id = data.id;
+    if (data.is_default !== undefined) payload.is_default = data.is_default;
+
+    const { data: result, error } = await supabase.from('equity_types').upsert(payload).select().single();
+
+    if (error) return { error: error.message };
+
+    revalidatePath('/settings');
+    return { success: true, data: result };
+}
+
+export async function deleteEquityType(id: string) {
+    const supabase = await createClient();
+    const { error } = await supabase.from('equity_types').delete().eq('id', id);
+    if (error) return { error: error.message };
+    revalidatePath('/settings');
+    return { success: true };
 }

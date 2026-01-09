@@ -1,6 +1,7 @@
 "use client";
 
 import { X, ChevronRight, Check, Plus, Trash2, DollarSign, PieChart, FileText, Upload, Pencil, Calendar, Tag, Layers, Hash, Layout, Users, TrendingUp, Activity, ArrowRight, PieChart as PieChartIcon } from "lucide-react";
+import { getEquityTypes } from "@/app/actions"; // Import action
 
 import { useState, useRef, useEffect } from "react";
 import { NotesManager, Note } from "../shared/NotesManager";
@@ -21,7 +22,7 @@ interface LogRoundModalProps {
     isOpen?: boolean; // Added for compatibility with CompanyDetail usage
     onClose: () => void;
     companyName: string;
-    onSave: (data: any) => void;
+    onSave: (data: any) => Promise<void> | void;
     initialData?: any;
     funds?: { id: string; name: string }[];
 }
@@ -54,13 +55,47 @@ export function LogRoundModal({ checkIfOpen, isOpen, onClose, companyName, onSav
     const [notes, setNotes] = useState<Note[]>(initialData?.notes || []);
 
 
-    // --- STATE: STEP 2 (Our Position) ---
+    // --- STATE SYNC ---
+    // Reset state when modal opens or initialData changes
+    useEffect(() => {
+        if (isOpen || checkIfOpen) {
+            setRoundDate(initialData?.roundTerms?.date || "");
+            setStage(initialData?.roundTerms?.stage || "");
+            setCapitalRaised(initialData?.roundTerms?.capitalRaised || "");
+            setStructure(initialData?.roundTerms?.structure || 'Equity');
+            setValuation(initialData?.roundTerms?.valuation || "");
+            setValContext(initialData?.roundTerms?.valContext || 'Post');
+            setPps(initialData?.roundTerms?.pps || "");
+            setValuationCap(initialData?.roundTerms?.valuationCap || "");
+            setDiscount(initialData?.roundTerms?.discount || "");
+            setDocuments(initialData?.roundTerms?.documents || []);
+            setNotes(initialData?.notes || []);
+            setParticipated(initialData?.position?.participated ?? false);
+            // Allocations are trickier if deep merged, but simple set is fine for now
+            setAllocations(initialData?.position?.allocations || []);
+            setHasProRata(initialData?.position?.hasProRata || false);
+            setHasWarrants(initialData?.position?.hasWarrants || false);
+            setWarrantCoverage(initialData?.position?.warrantCoverage || "");
+            setWarrantCoverageType(initialData?.position?.warrantCoverageType || "percentage");
+            setWarrantExpiration(initialData?.position?.warrantExpiration || "");
+            setLeads(initialData?.syndicate?.leads || []);
+            setCoInvestors(initialData?.syndicate?.coInvestors || []);
+        }
+    }, [isOpen, checkIfOpen, initialData]);
+
     const [participated, setParticipated] = useState(initialData?.position?.participated ?? false);
-    const [allocations, setAllocations] = useState<Allocation[]>(initialData?.position?.allocations || [
-        { id: '1', fundId: '', amount: '', shares: '', ownership: '' }
+    // Add equityType to allocations
+    const [allocations, setAllocations] = useState<any[]>(initialData?.position?.allocations || [
+        { id: '1', fundId: '', amount: '', shares: '', ownership: '', equityType: '' }
     ]);
     const [hasProRata, setHasProRata] = useState(initialData?.position?.hasProRata || false);
     const [hasWarrants, setHasWarrants] = useState(initialData?.position?.hasWarrants || false);
+
+    // Equity Types State
+    const [equityTypes, setEquityTypes] = useState<any[]>([]);
+    useEffect(() => {
+        getEquityTypes().then(types => setEquityTypes(types));
+    }, []);
 
     const [warrantCoverage, setWarrantCoverage] = useState(initialData?.position?.warrantCoverage || "");
     const [warrantCoverageType, setWarrantCoverageType] = useState<'money' | 'percentage'>(initialData?.position?.warrantCoverageType || 'percentage');
@@ -77,59 +112,71 @@ export function LogRoundModal({ checkIfOpen, isOpen, onClose, companyName, onSav
 
 
 
+    const [isSaving, setIsSaving] = useState(false);
+
     // Allocations
-    const addAllocation = () => setAllocations([...allocations, { id: Math.random().toString(), fundId: '', amount: '', shares: '', ownership: '' }]);
+    // Allocations
+    const addAllocation = () => setAllocations([...allocations, { id: Math.random().toString(), fundId: '', amount: '', shares: '', ownership: '', equityType: '' }]);
     const removeAllocation = (id: string) => setAllocations(allocations.filter(a => a.id !== id));
     const updateAllocation = (id: string, field: keyof Allocation, value: string) => setAllocations(prev => prev.map(a => a.id === id ? { ...a, [field]: value } : a));
 
     // Final Save
-    const handleLogRound = () => {
+    // Final Save Handler (Triggered by Footer Button)
+    const handleLogRound = async () => {
         // Validation
         if (!roundDate) {
             alert("Please select a Round Date.");
             return;
         }
 
-        // Just show the confirmation modal
-        setShowConfirmModal(true);
+        setIsSaving(true);
+        try {
+            const payload = {
+                id: initialData?.id, // Persist ID for updates
+                roundTerms: {
+                    date: roundDate,
+                    stage,
+                    capitalRaised,
+                    structure,
+                    valuation,
+                    valContext,
+                    pps,
+                    valuationCap,
+                    discount,
+                    documents: documents || []
+                },
+                position: {
+                    participated,
+                    allocations: allocations || [],
+                    hasProRata,
+                    hasWarrants,
+
+                    warrantCoverage,
+                    warrantCoverageType,
+                    warrantExpiration
+                },
+                syndicate: {
+                    leads: leads || [],
+                    coInvestors: coInvestors || []
+                },
+                notes: notes || []
+            };
+
+            // Call the parent onSave logic
+            await onSave(payload);
+
+            // Show Success Modal ONLY after successful save
+            setShowConfirmModal(true);
+        } catch (error) {
+            console.error("Error saving round:", error);
+            alert("Failed to save round. Please try again.");
+        } finally {
+            setIsSaving(false);
+        }
     };
 
-    const processFinalSave = () => {
-        const payload = {
-            id: initialData?.id, // Persist ID for updates
-            roundTerms: {
-                date: roundDate,
-                stage,
-                capitalRaised,
-                structure,
-                valuation,
-                valContext,
-                pps,
-                valuationCap,
-                discount,
-                documents: documents || []
-            },
-            position: {
-                participated,
-                allocations: allocations || [],
-                hasProRata,
-                hasWarrants,
-
-                warrantCoverage,
-                warrantCoverageType,
-                warrantExpiration
-            },
-            syndicate: {
-                leads: leads || [],
-                coInvestors: coInvestors || []
-            },
-            notes: notes || []
-        };
-
-        // Call the parent onSave logic
-        onSave(payload);
-
-        // Close modal
+    // Close Handler (Triggered by Success Modal "Done")
+    const handleDone = () => {
         setShowConfirmModal(false);
         onClose();
     };
@@ -227,7 +274,10 @@ export function LogRoundModal({ checkIfOpen, isOpen, onClose, companyName, onSav
                             setWarrantExpiration={setWarrantExpiration}
                             structure={structure}
                             pps={pps}
+                            structure={structure}
+                            pps={pps}
                             funds={funds}
+                            equityTypes={equityTypes} // Pass to StepPosition
                         />
                     </div>
                     <div className={activeTab === 'syndicate' ? 'block' : 'hidden'}>
@@ -254,9 +304,20 @@ export function LogRoundModal({ checkIfOpen, isOpen, onClose, companyName, onSav
                     </button>
                     <button
                         onClick={handleLogRound}
-                        className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm"
+                        disabled={isSaving}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm ${isSaving ? 'bg-primary/70 cursor-not-allowed' : 'bg-primary text-white hover:bg-primary/90'
+                            }`}
                     >
-                        {initialData ? 'Save Changes' : 'Log Round'} <Check size={16} />
+                        {isSaving ? (
+                            <>
+                                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                                Saving...
+                            </>
+                        ) : (
+                            <>
+                                {initialData ? 'Save Changes' : 'Log Round'} <Check size={16} />
+                            </>
+                        )}
                     </button>
                 </div>
             </div>
@@ -273,7 +334,7 @@ export function LogRoundModal({ checkIfOpen, isOpen, onClose, companyName, onSav
                             The financing round has been recorded to the company ledger and portfolio metrics have been updated.
                         </p>
                         <button
-                            onClick={processFinalSave}
+                            onClick={handleDone}
                             className="w-full py-3 bg-gray-900 text-white font-medium rounded-lg hover:bg-gray-800 transition-colors shadow-lg active:scale-[0.98]"
                         >
                             Done
@@ -578,10 +639,10 @@ function StepRoundTerms(props: any) {
 interface StepPositionProps {
     participated: boolean;
     setParticipated: (v: boolean) => void;
-    allocations: Allocation[];
+    allocations: any[]; // Changed to any[] to avoid strict interface issues for now
     addAllocation: () => void;
     removeAllocation: (id: string) => void;
-    updateAllocation: (id: string, field: keyof Allocation, value: string) => void;
+    updateAllocation: (id: string, field: string, value: string) => void;
     hasProRata: boolean;
     setHasProRata: (v: boolean) => void;
     // Warrants
@@ -596,12 +657,14 @@ interface StepPositionProps {
     structure: string;
     pps: string;
     funds: { id: string; name: string }[];
+    equityTypes?: any[];
 }
 
-function StepPosition({ participated, setParticipated, allocations, addAllocation, removeAllocation, updateAllocation, hasProRata, setHasProRata, hasWarrants, setHasWarrants, warrantCoverage, setWarrantCoverage, warrantCoverageType, setWarrantCoverageType, warrantExpiration, setWarrantExpiration, structure, pps, funds }: StepPositionProps) {
+function StepPosition({ participated, setParticipated, allocations, addAllocation, removeAllocation, updateAllocation, hasProRata, setHasProRata, hasWarrants, setHasWarrants, warrantCoverage, setWarrantCoverage, warrantCoverageType, setWarrantCoverageType, warrantExpiration, setWarrantExpiration, structure, pps, funds, equityTypes = [] }: StepPositionProps) {
 
 
-    const handleAllocationChange = (id: string, field: keyof Allocation, value: string) => {
+
+    const handleAllocationChange = (id: string, field: string, value: string) => {
         // 1. Clean Input (Allow numbers and decimals only)
         const cleanValue = value.replace(/[^0-9.]/g, '');
 
@@ -709,6 +772,28 @@ function StepPosition({ participated, setParticipated, allocations, addAllocatio
                                                     </div>
                                                 </div>
                                             </div>
+
+                                            {/* Equity Type (Only for Equity Rounds) */}
+                                            {structure !== 'SAFE' && (
+                                                <div className="pt-2">
+                                                    <div className="space-y-1.5">
+                                                        <label className="text-xs font-medium text-muted-foreground">Calculated Instrument</label>
+                                                        <div className="relative">
+                                                            <select
+                                                                value={allocation.equityType || ""}
+                                                                onChange={(e) => updateAllocation(allocation.id, 'equityType', e.target.value)}
+                                                                className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm bg-white focus:ring-2 focus:ring-blue-100 outline-none appearance-none"
+                                                            >
+                                                                <option value="">Please Select Equity Type...</option>
+                                                                {equityTypes && equityTypes.map((et: any) => (
+                                                                    <option key={et.id} value={et.name}>{et.name}</option>
+                                                                ))}
+                                                            </select>
+                                                            <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 rotate-90 text-gray-400 pointer-events-none" size={12} />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
 
                                             {/* Optional: Shares & Ownership (Only for Equity) */}
                                             {structure !== 'SAFE' && (
