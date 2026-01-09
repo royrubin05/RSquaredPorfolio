@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ArrowRight, Calendar, DollarSign, Users, Activity } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+
 
 interface LatestRoundsProps {
     rounds: {
