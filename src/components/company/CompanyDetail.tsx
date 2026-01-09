@@ -293,8 +293,8 @@ export function CompanyDetail({ initialData, funds = [] }: CompanyDetailProps) {
 
             // Determine Equity Type / Key
             // We want to group by Fund AND Round to show the split
-            // If equityType is generic, try to use Round Label for clarity
-            const typeName = round.round || alloc.equityType || (round.structure === 'SAFE' ? 'SAFE' : 'Preferred Equity');
+            // Use Round Label for the main grouping subtitle
+            const roundLabel = round.round || 'Unknown Round';
 
             // Unique Key combines Fund + Round to ensure separate rows per investment
             const uniqueKey = `${fundId}-${round.id}`;
@@ -302,7 +302,7 @@ export function CompanyDetail({ initialData, funds = [] }: CompanyDetailProps) {
             if (!fundHoldings[uniqueKey]) {
                 fundHoldings[uniqueKey] = {
                     fundName,
-                    equityType: typeName, // This will be the main label (e.g. "Series A")
+                    equityType: roundLabel, // Group Subtitle (e.g. "Series A")
                     totalShares: 0,
                     totalCost: 0,
                     ownership: 0,
@@ -317,8 +317,14 @@ export function CompanyDetail({ initialData, funds = [] }: CompanyDetailProps) {
             fundHoldings[uniqueKey].totalShares += validShares;
             fundHoldings[uniqueKey].totalCost += validCost;
 
-            // Instrument label can now just be the structure or type since the row is already the Round
-            const instrumentLabel = alloc.equityType || (round.structure === 'SAFE' ? 'SAFE' : 'Equity');
+            // Instrument label: Use exact DB value (equity_type) if available
+            // fallback to constructed name: "Series A Preferred" or "SAFE"
+            // FIX: Access 'equity_type' (snake_case) from raw transaction object, not camelCase
+            const dbInstrument = alloc.equity_type;
+            const fallbackInstrument = round.structure === 'SAFE' ? 'SAFE' : `${round.round} Preferred`;
+
+            const instrumentLabel = dbInstrument || fallbackInstrument;
+
             if (!fundHoldings[uniqueKey].instruments.includes(instrumentLabel)) {
                 fundHoldings[uniqueKey].instruments.push(instrumentLabel);
             }
