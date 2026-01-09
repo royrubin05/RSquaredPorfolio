@@ -694,6 +694,7 @@ export function CompanyDetail({ initialData, funds = [] }: CompanyDetailProps) {
                                     onConvertRequest={(e) => handleOpenConversion(e, round)}
                                     originalSafeTerms={round.originalSafeTerms}
                                     onRevertRequest={(e) => handleRevert(e, round.id)}
+                                    rSquaredInvested={round.rSquaredInvestedAmount}
                                 />
                             </div>
                         ))}
@@ -719,7 +720,7 @@ function DocItem({ name, type, size }: { name: string; type: string; size: strin
     )
 }
 
-function RoundEventRow({ round, date, valuation, amountRaised, pps, participated, onDelete, valuationCap, discount, id, structure, onConvertRequest, originalSafeTerms, onRevertRequest }: {
+function RoundEventRow({ round, date, valuation, amountRaised, pps, participated, onDelete, valuationCap, discount, id, structure, onConvertRequest, originalSafeTerms, onRevertRequest, rSquaredInvested }: {
     round: string;
     date: string;
     valuation: string;
@@ -733,7 +734,11 @@ function RoundEventRow({ round, date, valuation, amountRaised, pps, participated
     structure?: string,
     onConvertRequest?: (e: React.MouseEvent, round: Round) => void,
     onRevertRequest?: (e: React.MouseEvent, roundId: string) => void,
-    originalSafeTerms?: any
+    structure?: string,
+    onConvertRequest?: (e: React.MouseEvent, round: Round) => void,
+    onRevertRequest?: (e: React.MouseEvent, roundId: string) => void,
+    originalSafeTerms?: any,
+    rSquaredInvested?: number
 }) {
     const formatCurrency = (val: string, type: 'compact' | 'standard' = 'standard') => {
         if (!val || val === '-') return '-';
@@ -794,16 +799,16 @@ function RoundEventRow({ round, date, valuation, amountRaised, pps, participated
                     </>
                 )}
 
-                {/* Participation Badge + Actions */}
-                <div className="w-48 flex items-center gap-3">
-                    {participated && (
-                        <span className="inline-flex items-center gap-1.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm border border-emerald-400/20 uppercase tracking-wide whitespace-nowrap">
-                            <span className="w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)]"></span>
-                            Invested
-                        </span>
-                    )}
+                {/* R-Squared Invested Column (Replaces Badge) */}
+                <div className="w-32 text-right mr-4">
+                    <div className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">R-Squared</div>
+                    <div className={`font-mono text-sm ${rSquaredInvested && rSquaredInvested > 0 ? 'text-emerald-700 font-semibold' : 'text-gray-300'}`}>
+                        {rSquaredInvested && rSquaredInvested > 0 ? formatCurrency(rSquaredInvested.toString(), 'compact') : '—'}
+                    </div>
+                </div>
 
-                    {/* SAFE Conversion Buttons */}
+                {/* Actions */}
+                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     {/* SAFE Conversion Buttons */}
                     <div className="flex gap-2">
                         {isSafe && onConvertRequest && (

@@ -41,6 +41,10 @@ export async function getPortfolioOverview() {
 
     const capitalDeployed = transactions?.reduce((sum, t) => sum + Number(t.amount_invested), 0) || 0;
 
+    // Count unique rounds participated in
+    const uniqueRounds = new Set(transactions?.map(t => t.round_id));
+    const roundsCount = uniqueRounds.size;
+
     // 3. KPI: Active Companies
     const { count: activeCompanies } = await supabase
         .from('companies')
@@ -145,7 +149,10 @@ export async function getPortfolioOverview() {
         kpis: {
             totalAum,
             capitalDeployed,
-            activeCompanies: activeCompanies || 0
+            totalAum,
+            capitalDeployed,
+            activeCompanies: activeCompanies || 0,
+            roundsCount
         },
         deployments,
         portfolio

@@ -146,6 +146,16 @@ export function LogRoundModal({ checkIfOpen, isOpen, onClose, companyName, onSav
             return;
         }
 
+        // Validation: Participation requires allocations
+        if (participated) {
+            const validAllocations = allocations.filter(a => a.fundId && a.amount && parseFloat(a.amount.replace(/[^0-9.-]+/g, "")) > 0);
+            if (!validAllocations || validAllocations.length === 0) {
+                alert("You marked this round as 'Participated' but haven't added any valid Fund Allocations. Please add an allocation or uncheck participation.");
+                setActiveTab('position');
+                return;
+            }
+        }
+
         setIsSaving(true);
         try {
             const payload = {

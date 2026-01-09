@@ -9,6 +9,7 @@ export type DashboardProps = {
         totalAum: number;
         capitalDeployed: number;
         activeCompanies: number;
+        roundsCount?: number;
     };
     deployments: {
         name: string;
@@ -40,13 +41,13 @@ export function MasterDashboard({ kpis, deployments, latestRounds }: DashboardPr
                     <KpiCard
                         label="Total AUM"
                         value={fmt(kpis.totalAum)}
-                        subtext="Across Active Funds"
+                        subtext="Committed Capital"
                         icon={<DollarSign size={18} className="text-primary" />}
                     />
                     <KpiCard
                         label="Capital Deployed"
                         value={fmt(kpis.capitalDeployed)}
-                        subtext=""
+                        subtext={`Across ${kpis.roundsCount || '-'} rounds`}
                         icon={<TrendingUp size={18} className="text-primary" />}
                     />
                     <KpiCard
