@@ -29,7 +29,19 @@ export function AppShell({ children }: AppShellProps) {
         </nav>
 
         {/* Footer / Settings */}
-        <div className="p-4 border-t border-border/50 bg-slate-50/50">
+        <div className="p-4 border-t border-border/50 bg-slate-50/50 space-y-4">
+          {/* Alpha Warning Card */}
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+            <div className="flex items-start gap-2">
+              <div className="mt-0.5 text-amber-600 font-bold text-xs select-none">(!)</div>
+              <div className="space-y-1">
+                <div className="text-xs font-bold text-amber-800">System in Alpha</div>
+                <p className="text-[10px] leading-relaxed text-amber-700/90">
+                  Please verify all data and calculations independently.
+                </p>
+              </div>
+            </div>
+          </div>
           <NavLink href="/settings" icon={<Settings size={20} />} label="Settings" />
           <div className="px-3 py-2 text-[10px] text-muted-foreground/40 font-mono text-center mt-2">
             v{process.env.NEXT_PUBLIC_GIT_COMMIT || '2.4.0-beta'}
