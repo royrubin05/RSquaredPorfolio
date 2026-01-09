@@ -291,8 +291,7 @@ export function LogRoundModal({ checkIfOpen, isOpen, onClose, companyName, onSav
                             setWarrantExpiration={setWarrantExpiration}
                             structure={structure}
                             pps={pps}
-                            structure={structure}
-                            pps={pps}
+
                             funds={funds}
                             equityTypes={equityTypes} // Pass to StepPosition
                         />
