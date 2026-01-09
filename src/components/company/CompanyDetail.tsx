@@ -292,13 +292,17 @@ export function CompanyDetail({ initialData, funds = [] }: CompanyDetailProps) {
             const fundName = alloc.funds?.name;
 
             // Determine Equity Type / Key
-            const typeName = alloc.equityType || (round.structure === 'SAFE' ? 'SAFE' : 'Preferred Equity');
-            const uniqueKey = `${fundId}-${typeName}`; // Grouping Key
+            // We want to group by Fund AND Round to show the split
+            // If equityType is generic, try to use Round Label for clarity
+            const typeName = round.round || alloc.equityType || (round.structure === 'SAFE' ? 'SAFE' : 'Preferred Equity');
+
+            // Unique Key combines Fund + Round to ensure separate rows per investment
+            const uniqueKey = `${fundId}-${round.id}`;
 
             if (!fundHoldings[uniqueKey]) {
                 fundHoldings[uniqueKey] = {
                     fundName,
-                    equityType: typeName,
+                    equityType: typeName, // This will be the main label (e.g. "Series A")
                     totalShares: 0,
                     totalCost: 0,
                     ownership: 0,
@@ -313,13 +317,13 @@ export function CompanyDetail({ initialData, funds = [] }: CompanyDetailProps) {
             fundHoldings[uniqueKey].totalShares += validShares;
             fundHoldings[uniqueKey].totalCost += validCost;
 
-            const instrumentLabel = `${typeName} (${round.round})`;
+            // Instrument label can now just be the structure or type since the row is already the Round
+            const instrumentLabel = alloc.equityType || (round.structure === 'SAFE' ? 'SAFE' : 'Equity');
             if (!fundHoldings[uniqueKey].instruments.includes(instrumentLabel)) {
                 fundHoldings[uniqueKey].instruments.push(instrumentLabel);
             }
 
             // Accumulate ownership
-            // ownership_percentage is string in Allocation, convert to number
             const allocOwnership = parseFloat(alloc.ownership || '0');
             if (!isNaN(allocOwnership)) {
                 fundHoldings[uniqueKey].ownership += allocOwnership;
@@ -635,7 +639,7 @@ export function CompanyDetail({ initialData, funds = [] }: CompanyDetailProps) {
                         <thead>
                             <tr className="border-b border-border text-left">
                                 <th className="px-6 py-3 font-medium text-muted-foreground w-[15%]">Fund</th>
-                                <th className="px-6 py-3 font-medium text-muted-foreground text-left w-[20%]">Instrument</th>
+                                <th className="px-6 py-3 font-medium text-muted-foreground text-left w-[20%]">Round / Instrument</th>
                                 <th className="px-6 py-3 font-medium text-muted-foreground text-right">Ownership</th>
                                 <th className="px-6 py-3 font-medium text-muted-foreground text-right">Shares / Principal</th>
                                 <th className="px-6 py-3 font-medium text-muted-foreground text-right">Cost Basis</th>
