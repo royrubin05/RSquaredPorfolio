@@ -14,6 +14,24 @@ export function FundsList({ funds: initialFunds }: FundsListProps) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedFund, setSelectedFund] = useState<FundData | null>(null);
 
+    // Safe Currency Formatter
+    const formatCurrency = (amount: number, currencyCode: string = 'USD') => {
+        try {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: currencyCode || 'USD',
+                notation: 'compact'
+            }).format(amount);
+        } catch (e) {
+            // Fallback for invalid currency codes
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                notation: 'compact'
+            }).format(amount);
+        }
+    };
+
     // Modal States
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [fundToDelete, setFundToDelete] = useState<string | null>(null);
@@ -130,7 +148,7 @@ export function FundsList({ funds: initialFunds }: FundsListProps) {
                     <div>
                         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">AUM</p>
                         <p className="text-lg font-semibold mt-0.5">
-                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: fund.currency, notation: 'compact' }).format(committed)}
+                            {formatCurrency(committed, fund.currency)}
                         </p>
                     </div>
 
@@ -148,7 +166,7 @@ export function FundsList({ funds: initialFunds }: FundsListProps) {
                     <div>
                         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Investable</p>
                         <p className="text-lg font-semibold mt-0.5">
-                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: fund.currency, notation: 'compact' }).format(investable)}
+                            {formatCurrency(investable, fund.currency)}
                         </p>
                     </div>
 
@@ -156,7 +174,7 @@ export function FundsList({ funds: initialFunds }: FundsListProps) {
                     <div>
                         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Deployed</p>
                         <p className="text-lg font-semibold mt-0.5 flex items-center gap-2">
-                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: fund.currency, notation: 'compact' }).format(deployed)}
+                            {formatCurrency(deployed, fund.currency)}
                             <span className="text-xs font-normal text-muted-foreground">({deployedPct.toFixed(0)}%)</span>
                         </p>
                     </div>
@@ -166,7 +184,7 @@ export function FundsList({ funds: initialFunds }: FundsListProps) {
                 <div className="px-5 pb-5">
                     <div className="flex justify-between text-xs mb-1.5">
                         <span className="text-muted-foreground">To Deploy</span>
-                        <span className="font-medium">{new Intl.NumberFormat('en-US', { style: 'currency', currency: fund.currency, notation: 'compact' }).format(toDeploy)}</span>
+                        <span className="font-medium">{formatCurrency(toDeploy, fund.currency)}</span>
                     </div>
                     <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
                         <div
