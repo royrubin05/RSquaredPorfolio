@@ -514,7 +514,7 @@ export async function getLatestRounds() {
             date: r.close_date,
             investedAmount: invested,
             roundSize: Number(r.round_size) || 0,
-            leads: uniqueLeads
+            leads: leads
         };
     });
 
