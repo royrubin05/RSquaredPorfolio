@@ -502,11 +502,14 @@ export async function getLatestRounds() {
             .map((s: any) => s.investor?.name)
             .filter(Boolean) || [];
 
+        // Helper to safely access company data (it returns as array from join but is 1:1)
+        const company = Array.isArray(r.company) ? r.company[0] : r.company;
+
         return {
             id: r.id,
-            companyId: r.company?.id,
-            companyName: r.company?.name || 'Unknown',
-            companySector: r.company?.sector,
+            companyId: company?.id,
+            companyName: company?.name || 'Unknown',
+            companySector: company?.sector,
             roundLabel: r.round_label,
             date: r.close_date,
             investedAmount: invested,
