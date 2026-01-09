@@ -307,7 +307,7 @@ export function CompanyDetail({ initialData, funds = [] }: CompanyDetailProps) {
 
             // Parse
             const safeParseFloat = (val: any) => parseFloat(String(val).replace(/[^0-9.-]+/g, "")) || 0;
-            const validShares = safeParseFloat(alloc.number_of_shares);
+            const validShares = safeParseFloat(alloc.shares_purchased);
             const validCost = safeParseFloat(alloc.amount_invested);
 
             fundHoldings[uniqueKey].totalShares += validShares;
