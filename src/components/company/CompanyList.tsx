@@ -311,9 +311,13 @@ export function CompanyList({ initialCompanies = [], initialFunds = [] }: { init
                                         <td className="px-6 py-4 text-muted-foreground">{company.stage || '-'}</td>
                                         <td className="px-6 py-4 text-right font-mono text-foreground font-medium">
                                             {/* TODO: Aggregate investments proper */}
-                                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(company.invested_amount || 0)}
+                                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(company.invested || 0)}
                                         </td>
-                                        <td className="px-6 py-4 text-right font-mono text-muted-foreground">{company.ownership_percentage || '0'}%</td>
+                                        <td className="px-6 py-4 text-right font-mono text-muted-foreground">
+                                            {Number(company.ownership_percentage) > 0
+                                                ? `${company.ownership_percentage}%`
+                                                : (company.stage?.toUpperCase().includes('SAFE') ? 'SAFE' : '—')}
+                                        </td>
                                         <td className="px-6 py-4 text-right flex items-center justify-end gap-2">
                                             <button
                                                 onClick={(e) => handleEditCompany(e, company)}

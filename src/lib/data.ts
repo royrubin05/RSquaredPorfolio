@@ -99,6 +99,7 @@ export async function getPortfolioOverview() {
             id, name, sector, status, headquarters,
             financing_rounds (
                 round_label,
+                close_date,
                 transactions (
                     amount_invested,
                     ownership_percentage,
@@ -112,13 +113,16 @@ export async function getPortfolioOverview() {
         let totalInvested = 0;
         let totalOwnership = 0;
         const fundsSet = new Set<string>();
-        let latestStage = '-';
 
-        c.financing_rounds?.forEach((r: any) => {
-            // Pick latest round label as stage (simplified)
-            latestStage = r.round_label;
+        // Sort rounds by date descending to get latest stage
+        const sortedRounds = c.financing_rounds?.sort((a: any, b: any) =>
+            new Date(b.close_date || 0).getTime() - new Date(a.close_date || 0).getTime()
+        ) || [];
 
-            // Extract fund names for display
+        const latestStage = sortedRounds[0]?.round_label || '-';
+
+        // Collect funds from all rounds/transactions
+        sortedRounds.forEach((r: any) => {
             r.transactions?.forEach((t: any) => {
                 if (t.funds?.name) fundsSet.add(t.funds.name);
             });
@@ -126,10 +130,6 @@ export async function getPortfolioOverview() {
 
         // Use aggregated values from the flat transaction list (Source of Truth)
         totalInvested = companyInvestedMap.get(c.id) || 0;
-        // Optional: Use aggregated ownership or stick to current loop?
-        // Let's use aggregated ownership to capture "hidden" transactions too
-        // But the deep loop captures fund names... can we keep both?
-        // Let's use the Map for numbers, and Loop for Strings (Fund Names)
         totalOwnership = companyOwnershipMap.get(c.id) || 0;
 
         return {
