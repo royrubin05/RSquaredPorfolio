@@ -659,7 +659,7 @@ interface StepPositionProps {
     allocations: any[]; // Changed to any[] to avoid strict interface issues for now
     addAllocation: () => void;
     removeAllocation: (id: string) => void;
-    updateAllocation: (id: string, field: string, value: string) => void;
+    updateAllocation: (id: string, field: keyof Allocation, value: string) => void;
     hasProRata: boolean;
     setHasProRata: (v: boolean) => void;
     // Warrants
@@ -681,7 +681,7 @@ function StepPosition({ participated, setParticipated, allocations, addAllocatio
 
 
 
-    const handleAllocationChange = (id: string, field: string, value: string) => {
+    const handleAllocationChange = (id: string, field: keyof Allocation, value: string) => {
         // 1. Clean Input (Allow numbers and decimals only)
         const cleanValue = value.replace(/[^0-9.]/g, '');
 
