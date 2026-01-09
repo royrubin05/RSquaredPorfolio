@@ -324,16 +324,14 @@ export function CompanyDetail({ initialData, funds = [] }: CompanyDetailProps) {
     const holdingsList = Object.values(fundHoldings).sort((a, b) => a.fundName.localeCompare(b.fundName));
 
     // Apply Implied Value Calculation using Latest PPS
+    // Apply Implied Value Calculation using Latest PPS
     Object.values(fundHoldings).forEach(holding => {
-        // Fix for SAFE / Note structures where PPS might be undefined or meaningless:
-        // If PPS is 0/NaN but we have cost, and it's a SAFE, default to 1x (Implied = Cost).
-        // Check if latest round is SAFE-like logic:
-        const isSafeStructure = rounds[0]?.structure === 'SAFE' || rounds[0]?.round?.toLowerCase().includes('safe') || rounds[0]?.round?.toLowerCase().includes('note');
-
-        if ((isNaN(latestPps) || latestPps === 0) && isSafeStructure) {
-            holding.impliedValue = holding.totalCost; // 1x Val
+        // Validation: If no shares (SAFE) or no valid PPS, default to Cost Basis (1x)
+        // This prevents showing $0 value for SAFEs or incomplete data
+        if (holding.totalShares === 0 || isNaN(latestPps) || latestPps === 0) {
+            holding.impliedValue = holding.totalCost;
         } else {
-            holding.impliedValue = holding.totalShares * (isNaN(latestPps) ? 0 : latestPps);
+            holding.impliedValue = holding.totalShares * latestPps;
         }
     });
 
