@@ -73,8 +73,8 @@ export function MasterDashboard({ kpis, deployments, latestRounds }: DashboardPr
                                     <DeploymentBar
                                         key={i}
                                         name={d.name}
-                                        deployed={d.deployed / 1000000} // props in nominal
-                                        total={d.total / 1000000}
+                                        deployed={d.deployed} // Pass raw nominal values
+                                        total={d.total}
                                         vintage={d.vintage}
                                         isSpv={d.name.includes("SPV")} // Auto-detect SPV for now if flag missing or rely on name
                                     />
@@ -127,6 +127,9 @@ function DeploymentBar({ name, deployed, total, vintage, isSpv }: { name: string
     const percent = Math.min((deployed / total) * 100, 100);
     const isHighUtilization = percent > 85;
 
+    // Helper for compact currency
+    const fmt = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: "compact", maximumFractionDigits: 1 }).format(n);
+
     return (
         <div className="space-y-2 group">
             <div className="flex justify-between items-center text-sm">
@@ -136,9 +139,9 @@ function DeploymentBar({ name, deployed, total, vintage, isSpv }: { name: string
                     {vintage && <span className="text-xs text-muted-foreground">({vintage})</span>}
                 </div>
                 <div className="text-right">
-                    <span className="font-mono font-medium text-foreground">${(deployed / 1000000).toFixed(1)}M</span>
+                    <span className="font-mono font-medium text-foreground">{fmt(deployed)}</span>
                     <span className="text-muted-foreground mx-1">/</span>
-                    <span className="font-mono text-muted-foreground">${(total / 1000000).toFixed(1)}M</span>
+                    <span className="font-mono text-muted-foreground">{fmt(total)}</span>
                 </div>
             </div>
 
@@ -158,7 +161,7 @@ function DeploymentBar({ name, deployed, total, vintage, isSpv }: { name: string
                     {percent.toFixed(1)}% Deployed
                 </span>
                 <span className="text-muted-foreground">
-                    ${(total - deployed).toFixed(1)}M Remaining
+                    {fmt(total - deployed)} Remaining
                 </span>
             </div>
         </div>
