@@ -44,7 +44,7 @@ export default function CalculationsPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="p-3 bg-amber-50/50 rounded border border-amber-100">
-                            <h4 className="text-xs font-bold text-amber-800 uppercase mb-1">SAFE / Convertible Notes</h4>
+                            <h4 className="text-xs font-bold text-amber-800 uppercase mb-1">SAFE Agreements</h4>
                             <p className="text-xs text-amber-900/80">
                                 Since SAFEs do not have a fixed share count until conversion, their Implied Value defaults to the <strong>Cost Basis</strong> (Invested Amount) to prevent showing $0.00.
                             </p>

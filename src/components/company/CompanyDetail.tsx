@@ -37,7 +37,7 @@ interface Round {
     rSquaredInvestedAmount?: number; // Raw number for calculation
     allocations?: Allocation[];
     hasWarrants?: boolean;
-    // SAFE / Convertible Note Terms
+    // SAFE Terms
     valuationCap?: string;
 
     discount?: string;
@@ -740,7 +740,7 @@ function RoundEventRow({ round, date, valuation, amountRaised, pps, participated
         return type === 'compact' ? formatCompact(num) : formatCurrency(num, { maximumFractionDigits: 4 });
     };
 
-    const isSafe = structure === 'SAFE' || round.toLowerCase().includes('safe') || round.toLowerCase().includes('note');
+    const isSafe = structure === 'SAFE' || round.toLowerCase().includes('safe');
 
     return (
         <div className={`px-6 py-4 flex items-center justify-between transition-colors cursor-pointer group ${participated ? 'bg-green-50/30 hover:bg-green-50/50' : 'hover:bg-gray-50/50'}`}>
