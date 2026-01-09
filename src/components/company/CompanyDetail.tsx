@@ -808,7 +808,20 @@ function RoundEventRow({ round, date, valuation, amountRaised, pps, participated
                     <div className="flex gap-2">
                         {isSafe && onConvertRequest && (
                             <button
-                                onClick={(e) => onConvertRequest(e, { id, round, date, valuation, pps, documents: [], structure, valuationCap, discount, originalSafeTerms } as Round)}
+                                onClick={(e) => onConvertRequest(e, {
+                                    id: id || '',
+                                    round,
+                                    date,
+                                    valuation,
+                                    pps,
+                                    documents: [],
+                                    structure: structure as any,
+                                    valuationCap,
+                                    discount,
+                                    originalSafeTerms,
+                                    lead: '',
+                                    capitalRaised: amountRaised
+                                } as Round)}
                                 className="text-xs font-semibold bg-blue-600 text-white px-3 py-1.5 rounded-md hover:bg-blue-700 shadow-sm transition-all flex items-center gap-1.5"
                             >
                                 <RefreshCw size={12} className="opacity-80" /> Convert
