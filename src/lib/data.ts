@@ -1,5 +1,6 @@
 
 import { createClient } from "./supabase/server";
+import { calculateTotalInvested } from "./calculations";
 
 export type PortfolioKPIs = {
     totalAum: number;
@@ -39,7 +40,7 @@ export async function getPortfolioOverview() {
         .from('transactions')
         .select('amount_invested, ownership_percentage, security_type, fund_id, funds(name, vintage, committed_capital), round_id, financing_rounds!inner(company_id)');
 
-    const capitalDeployed = transactions?.reduce((sum, t) => sum + Number(t.amount_invested), 0) || 0;
+    const capitalDeployed = calculateTotalInvested(transactions);
 
     // Count unique rounds participated in
     const uniqueRounds = new Set(transactions?.map(t => t.round_id));
@@ -255,7 +256,7 @@ export async function getCompanyDetails(id: string) {
                 capitalRaised: r.round_size?.toString() || "-",
                 lead: r.round_syndicate?.[0]?.investor?.name || "-",
                 participated,
-                rSquaredInvestedAmount: roundTx?.reduce((sum, t) => sum + Number(t.amount_invested), 0) || 0,
+                rSquaredInvestedAmount: calculateTotalInvested(roundTx),
                 allocations,
                 originalSafeTerms: r.original_safe_terms,
                 hasWarrants,
