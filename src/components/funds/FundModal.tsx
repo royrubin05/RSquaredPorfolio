@@ -7,8 +7,8 @@ export interface FundData {
     id?: string;
     name: string;
     vintage?: string;
-    committed_capital: string; // AUM
-    investable_amount: string;
+    committed_capital: string | number; // AUM
+    investable_amount: string | number;
     formation_date: string;
     investment_period_start: string;
     investment_period_end: string;
@@ -33,9 +33,12 @@ export function FundModal({ isOpen, onClose, initialData, onSave }: FundModalPro
     const [currency, setCurrency] = useState("USD");
 
     // Helper: Format number with commas
-    const formatCurrencyInput = (value: string) => {
+    const formatCurrencyInput = (value: string | number) => {
+        if (value === null || value === undefined) return '';
+        const stringValue = String(value);
+
         // Remove non-numeric chars (except decimal point if needed, but usually AUM is integer)
-        const raw = value.replace(/[^0-9]/g, '');
+        const raw = stringValue.replace(/[^0-9]/g, '');
         if (!raw) return '';
         return new Intl.NumberFormat('en-US').format(BigInt(raw));
     };
