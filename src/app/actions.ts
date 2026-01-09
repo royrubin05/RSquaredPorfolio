@@ -467,7 +467,7 @@ export async function getLatestRounds() {
             company:companies(id, name, sector)
         `)
         .order('created_at', { ascending: false })
-        .limit(10);
+        .limit(6);
 
     if (error) {
         console.error('Error fetching latest rounds:', error);
