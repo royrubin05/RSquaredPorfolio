@@ -13,6 +13,7 @@ interface LatestRoundsProps {
         roundLabel: string;
         date: string;
         investedAmount: number;
+        roundSize: number;
         leads: string[];
     }[];
 }
@@ -67,10 +68,21 @@ export function LatestRounds({ rounds }: LatestRoundsProps) {
                             </div>
 
                             <div className="text-right">
-                                <div className="text-sm font-bold text-emerald-600 font-mono tracking-tight">
-                                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(round.investedAmount)}
-                                </div>
-                                <div className="text-[10px] uppercase font-bold text-muted-foreground/70 mt-0.5">Invested</div>
+                                {round.investedAmount > 0 ? (
+                                    <>
+                                        <div className="text-sm font-bold text-emerald-600 font-mono tracking-tight">
+                                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(round.investedAmount)}
+                                        </div>
+                                        <div className="text-[10px] uppercase font-bold text-muted-foreground/70 mt-0.5">Invested</div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className="text-sm font-bold text-muted-foreground font-mono tracking-tight">
+                                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0, notation: "compact" }).format(round.roundSize)}
+                                        </div>
+                                        <div className="text-[10px] uppercase font-bold text-muted-foreground/50 mt-0.5">Raised</div>
+                                    </>
+                                )}
                             </div>
                         </div>
 

@@ -507,13 +507,14 @@ export async function getLatestRounds() {
 
         return {
             id: r.id,
-            companyId: company?.id,
-            companyName: company?.name || 'Unknown',
-            companySector: company?.sector,
+            companyId: r.company?.id,
+            companyName: r.company?.name || 'Unknown',
+            companySector: r.company?.sector,
             roundLabel: r.round_label,
             date: r.close_date,
             investedAmount: invested,
-            leads: leads
+            roundSize: Number(r.round_size) || 0,
+            leads: uniqueLeads
         };
     });
 
