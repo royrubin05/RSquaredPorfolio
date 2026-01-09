@@ -449,7 +449,7 @@ export function CompanyDetail({ initialData, funds = [] }: CompanyDetailProps) {
                         setIsConversionModalOpen(false);
                         setConversionRound(null);
                     }}
-                    companyName={companyName}
+
                     round={conversionRound}
                     onConvert={handleConvertConfirm}
                     equityTypes={availableEquityTypes}
