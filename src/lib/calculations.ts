@@ -96,3 +96,18 @@ export function safeParseBytes(val: any): number {
     if (!val) return 0;
     return parseFloat(String(val).replace(/[^0-9.-]+/g, "")) || 0;
 }
+
+/**
+ * Calculates MOIC (Multiple on Invested Capital).
+ * 
+ * Formula: Implied Value / Invested Capital
+ * Returns 1.0x if invested is 0 to avoid Infinity, or 0.0x if Value is 0.
+ * 
+ * @param invested Total Invested Capital
+ * @param value Current Implied Value
+ */
+export function calculateMOIC(invested: number, value: number): string {
+    if (!invested || invested === 0) return "—"; // Or "N/A"
+    const moic = value / invested;
+    return `${moic.toFixed(1)}x`;
+}
