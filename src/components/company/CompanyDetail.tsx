@@ -734,9 +734,7 @@ function RoundEventRow({ round, date, valuation, amountRaised, pps, participated
     structure?: string,
     onConvertRequest?: (e: React.MouseEvent, round: Round) => void,
     onRevertRequest?: (e: React.MouseEvent, roundId: string) => void,
-    structure?: string,
-    onConvertRequest?: (e: React.MouseEvent, round: Round) => void,
-    onRevertRequest?: (e: React.MouseEvent, roundId: string) => void,
+
     originalSafeTerms?: any,
     rSquaredInvested?: number
 }) {
