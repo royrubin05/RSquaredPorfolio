@@ -8,7 +8,7 @@ import { LogRoundModal } from "../dashboard/LogRoundModal";
 import { SAFEConversionModal } from "../dashboard/SAFEConversionModal";
 import { NotesManager, Note } from "../shared/NotesManager";
 import { deleteRound, upsertRound, getFunds, convertSafeToEquity, revertSafeToEquity, getEquityTypes } from "@/app/actions";
-import { calculateImpliedValue, formatCurrency, formatCompact, safeParseBytes } from "@/lib/calculations";
+import { calculateImpliedValue, formatCurrency, formatCompact, safeParseBytes, calculateMOIC } from "@/lib/calculations";
 
 
 
@@ -317,6 +317,13 @@ export function CompanyDetail({ initialData, funds = [] }: CompanyDetailProps) {
             if (!fundHoldings[uniqueKey].instruments.includes(instrumentLabel)) {
                 fundHoldings[uniqueKey].instruments.push(instrumentLabel);
             }
+
+            // Accumulate ownership
+            // ownership_percentage is string in Allocation, convert to number
+            const allocOwnership = parseFloat(alloc.ownership || '0');
+            if (!isNaN(allocOwnership)) {
+                fundHoldings[uniqueKey].ownership += allocOwnership;
+            }
         });
     });
 
@@ -535,21 +542,49 @@ export function CompanyDetail({ initialData, funds = [] }: CompanyDetailProps) {
                         </div>
                     </div>
 
-                    <div className="flex gap-16 border-t border-border pt-6">
+                    <div className="flex gap-12 border-t border-border pt-6 overflow-x-auto pb-2">
                         <div>
-                            <div className="text-xs font-medium text-muted-foreground uppercase">Total Raised</div>
+                            <div className="text-xs font-medium text-muted-foreground uppercase whitespace-nowrap">Total Shares</div>
                             <div className="text-2xl font-bold text-foreground font-mono mt-1">
-                                ${new Intl.NumberFormat('en-US', { notation: "compact", maximumFractionDigits: 1 }).format(totalRaised)}
+                                {new Intl.NumberFormat('en-US').format(
+                                    Object.values(fundHoldings).reduce((sum, h) => sum + h.totalShares, 0)
+                                )}
                             </div>
                         </div>
                         <div>
-                            <div className="text-xs font-medium text-muted-foreground uppercase">Current Valuation</div>
-                            <div className="text-2xl font-bold text-foreground font-mono mt-1">{currentValuation}</div>
+                            <div className="text-xs font-medium text-muted-foreground uppercase whitespace-nowrap">Total Ownership</div>
+                            <div className="text-2xl font-bold text-foreground font-mono mt-1">
+                                {Object.values(fundHoldings).reduce((sum, h) => sum + h.ownership, 0).toFixed(2)}%
+                            </div>
                         </div>
                         <div>
-                            <div className="text-xs font-medium text-muted-foreground uppercase">R-Squared Invested (across all vehicles)</div>
+                            <div className="text-xs font-medium text-muted-foreground uppercase whitespace-nowrap">Invested (Cost Basis)</div>
                             <div className="text-2xl font-bold text-foreground font-mono mt-1">
                                 ${new Intl.NumberFormat('en-US', { notation: "compact", maximumFractionDigits: 1 }).format(totalRSquaredInvested)}
+                            </div>
+                        </div>
+                        <div>
+                            <div className="text-xs font-medium text-muted-foreground uppercase whitespace-nowrap">Implied Value</div>
+                            <div className="text-2xl font-bold text-foreground font-mono mt-1">
+                                {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: "compact", maximumFractionDigits: 1 }).format(
+                                    Object.values(fundHoldings).reduce((sum, h) => sum + (h.impliedValue || 0), 0)
+                                )}
+                            </div>
+                        </div>
+                        <div>
+                            <div className="text-xs font-medium text-muted-foreground uppercase whitespace-nowrap">MOIC</div>
+                            <div className={`text-2xl font-bold font-mono mt-1 ${(() => {
+                                const implied = Object.values(fundHoldings).reduce((sum, h) => sum + (h.impliedValue || 0), 0);
+                                const moicVal = implied / (totalRSquaredInvested || 1);
+                                if (moicVal >= 3) return 'text-emerald-600';
+                                if (moicVal >= 1) return 'text-foreground';
+                                return 'text-amber-600';
+                            })()
+                                }`}>
+                                {calculateMOIC(
+                                    totalRSquaredInvested,
+                                    Object.values(fundHoldings).reduce((sum, h) => sum + (h.impliedValue || 0), 0)
+                                )}
                             </div>
                         </div>
                     </div>
@@ -600,7 +635,8 @@ export function CompanyDetail({ initialData, funds = [] }: CompanyDetailProps) {
                         <thead>
                             <tr className="border-b border-border text-left">
                                 <th className="px-6 py-3 font-medium text-muted-foreground w-[15%]">Fund</th>
-                                <th className="px-6 py-3 font-medium text-muted-foreground text-left w-[25%]">Instrument</th>
+                                <th className="px-6 py-3 font-medium text-muted-foreground text-left w-[20%]">Instrument</th>
+                                <th className="px-6 py-3 font-medium text-muted-foreground text-right">Ownership</th>
                                 <th className="px-6 py-3 font-medium text-muted-foreground text-right">Shares / Principal</th>
                                 <th className="px-6 py-3 font-medium text-muted-foreground text-right">Cost Basis</th>
                                 <th className="px-6 py-3 font-medium text-muted-foreground text-right">Implied Value</th>
@@ -627,6 +663,9 @@ export function CompanyDetail({ initialData, funds = [] }: CompanyDetailProps) {
                                                 </span>
                                             ))}
                                         </td>
+                                        <td className="px-6 py-4 text-right font-mono text-foreground align-top space-y-1">
+                                            <div>{holding.ownership > 0 ? `${holding.ownership.toFixed(2)}%` : '—'}</div>
+                                        </td>
                                         <td className="px-6 py-4 text-right font-mono text-muted-foreground align-top space-y-1">
                                             <div>
                                                 {holding.totalShares === 0 && holding.instruments.some(i => i.includes('SAFE'))
@@ -645,7 +684,7 @@ export function CompanyDetail({ initialData, funds = [] }: CompanyDetailProps) {
                             )}
                             {Object.values(fundHoldings).length > 0 && (
                                 <tr className="bg-gray-50/50 font-medium">
-                                    <td colSpan={3} className="px-6 py-4 text-foreground text-right uppercase text-xs tracking-wider">Total Net Funding</td>
+                                    <td colSpan={4} className="px-6 py-4 text-foreground text-right uppercase text-xs tracking-wider">Total Net Funding</td>
                                     <td className="px-6 py-4 text-right font-mono text-foreground underline decoration-double decoration-gray-300 underline-offset-4">
                                         {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(
                                             Object.values(fundHoldings).reduce((sum, h) => sum + h.totalCost, 0)

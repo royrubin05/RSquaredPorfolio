@@ -49,6 +49,17 @@ export default function CalculationsPage() {
                                 Since SAFEs do not have a fixed share count until conversion, their Implied Value defaults to the <strong>Cost Basis</strong> (Invested Amount) to prevent showing $0.00.
                             </p>
                         </div>
+
+                        <div className="p-4 bg-white rounded-lg border border-gray-200 shadow-sm">
+                            <h3 className="text-sm font-semibold text-gray-900 mb-2">MOIC (Multiple on Invested Capital)</h3>
+                            <div className="text-xs font-mono bg-gray-50 p-2 rounded border border-gray-100 mb-2">
+                                Implied Value / Total Invested Capital
+                            </div>
+                            <p className="text-xs text-gray-500">
+                                Shows the return multiple of the investment. If Total Invested is $0, it returns "—".
+                            </p>
+                        </div>
+
                         <div className="p-3 bg-green-50/50 rounded border border-green-100">
                             <h4 className="text-xs font-bold text-green-800 uppercase mb-1">Priced Equity</h4>
                             <p className="text-xs text-green-900/80">
