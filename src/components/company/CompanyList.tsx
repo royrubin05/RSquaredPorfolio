@@ -314,9 +314,9 @@ export function CompanyList({ initialCompanies = [], initialFunds = [] }: { init
                                             {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(company.invested || 0)}
                                         </td>
                                         <td className="px-6 py-4 text-right font-mono text-muted-foreground">
-                                            {Number(company.ownership_percentage) > 0
-                                                ? `${company.ownership_percentage}%`
-                                                : (company.stage?.toUpperCase().includes('SAFE') ? 'SAFE' : '—')}
+                                            {Number(company.ownership) > 0
+                                                ? `${Number(company.ownership)}%`
+                                                : (company.invested > 0 ? 'SAFE' : '—')}
                                         </td>
                                         <td className="px-6 py-4 text-right flex items-center justify-end gap-2">
                                             <button

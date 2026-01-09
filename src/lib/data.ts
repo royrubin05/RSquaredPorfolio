@@ -37,7 +37,7 @@ export async function getPortfolioOverview() {
     // 2. KPIs: Capital Deployed (Sum of all Investment Transactions)
     const { data: transactions } = await supabase
         .from('transactions')
-        .select('amount_invested, fund_id, funds(name, vintage, committed_capital), round_id, financing_rounds!inner(company_id)');
+        .select('amount_invested, ownership_percentage, security_type, fund_id, funds(name, vintage, committed_capital), round_id, financing_rounds!inner(company_id)');
 
     const capitalDeployed = transactions?.reduce((sum, t) => sum + Number(t.amount_invested), 0) || 0;
 
@@ -78,8 +78,8 @@ export async function getPortfolioOverview() {
             // Simplified: Sum of all transaction ownerships (assuming they are incremental or different classes)
             // Ideally we'd cap at 100% or be smarter, but for now Sum is standard for "Access"
             const currentOwnership = companyOwnershipMap.get(companyId) || 0;
-            // CAST T TO ANY TO AVOID TS ERROR IF PROPERTY MISSING IN INFERRED TYPE
-            companyOwnershipMap.set(companyId, currentOwnership + (Number((t as any).ownership_percentage) || 0));
+            // Now ownership_percentage is selected, no 'any' cast needed if typed correctly, but safe to keep checking valid number
+            companyOwnershipMap.set(companyId, currentOwnership + (Number(t.ownership_percentage) || 0));
         }
     });
 
@@ -128,9 +128,14 @@ export async function getPortfolioOverview() {
             });
         });
 
-        // Use aggregated values from the flat transaction list (Source of Truth)
+        // Use aggregated values
         totalInvested = companyInvestedMap.get(c.id) || 0;
         totalOwnership = companyOwnershipMap.get(c.id) || 0;
+
+        // Improved SAFE detection:
+        // 1. Stage has SAFE
+        // 2. Or, ownership is 0 but invested > 0 (Likely SAFE or Note)
+        // 3. We could also track 'hasSafe' in the loop if we needed perfect accuracy
 
         return {
             id: c.id,
