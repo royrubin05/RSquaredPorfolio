@@ -4,18 +4,20 @@ import { Plus, Wallet, Edit2, Trash2, X, Check, Layers, Users, Activity, FileDig
 import { useState, useEffect } from "react";
 // import { INITIAL_FUNDS, INITIAL_INDUSTRIES } from "../../lib/constants"; // Removed
 import { CompanyStatusSettings } from "./CompanyStatusSettings";
+import { TeamManager } from "@/components/settings/TeamManager";
 import { upsertFund, deleteFund, saveIndustries, upsertEquityType, deleteEquityType } from "@/app/actions";
 import { useRouter } from "next/navigation";
 
 interface SettingsPageProps {
     initialFunds?: any[];
     initialIndustries?: any[];
+    initialTeam?: any[];
     initialEquityTypes?: any[];
 }
 
-export function SettingsPage({ initialFunds = [], initialIndustries = [], initialEquityTypes = [] }: SettingsPageProps) {
+export function SettingsPage({ initialFunds = [], initialIndustries = [], initialTeam = [], initialEquityTypes = [] }: SettingsPageProps) {
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState<'industries' | 'statuses' | 'equity_types'>('industries');
+    const [activeTab, setActiveTab] = useState<'industries' | 'users' | 'statuses' | 'equity_types'>('industries');
 
     // Data State (synced with props)
     const [funds, setFunds] = useState(initialFunds);
@@ -156,7 +158,13 @@ export function SettingsPage({ initialFunds = [], initialIndustries = [], initia
 
                     <div className="flex-1"></div>
 
-
+                    <TabButton
+                        active={activeTab === 'users'}
+                        onClick={() => setActiveTab('users')}
+                        label="User Management"
+                        icon={<Users size={16} />}
+                        className={activeTab === 'users' ? "text-purple-600 border-purple-600 bg-purple-50/50" : "text-purple-600/80 hover:text-purple-700 hover:bg-purple-50/30"}
+                    />
                 </div>
 
                 {/* Tab Content */}
