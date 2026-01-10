@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUpRight, Link as LinkIcon, MoreHorizontal, Filter, Plus, Pencil, FileText, Trash2 } from "lucide-react";
+import { ArrowUpRight, Link as LinkIcon, MoreHorizontal, Filter, Plus, Pencil, FileText, Trash2, Search } from "lucide-react";
 import Link from 'next/link';
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";

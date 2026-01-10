@@ -584,18 +584,17 @@ export function CompanyDetail({ initialData, funds = [] }: CompanyDetailProps) {
                         </div>
                         <div>
                             <div className="text-xs font-medium text-muted-foreground uppercase whitespace-nowrap">MOIC</div>
-                            <div className={`text-2xl font-bold font-mono mt-1 ${(() => {
-                                const implied = Object.values(fundHoldings).reduce((sum, h) => sum + (h.impliedValue || 0), 0);
-                                const moicVal = implied / (totalRSquaredInvested || 1);
-                                if (moicVal >= 3) return 'text-emerald-600';
-                                if (moicVal >= 1) return 'text-foreground';
-                                return 'text-amber-600';
-                            })()
-                                }`}>
+                            <div className="text-2xl font-bold font-mono mt-1 text-emerald-600">
                                 {calculateMOIC(
                                     totalRSquaredInvested,
                                     Object.values(fundHoldings).reduce((sum, h) => sum + (h.impliedValue || 0), 0)
                                 )}
+                            </div>
+                        </div>
+                        <div>
+                            <div className="text-xs font-medium text-muted-foreground uppercase whitespace-nowrap">Total Raised</div>
+                            <div className="text-2xl font-bold text-foreground font-mono mt-1">
+                                {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: "compact", maximumFractionDigits: 1 }).format(totalRaised)}
                             </div>
                         </div>
                     </div>
