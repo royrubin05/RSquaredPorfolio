@@ -576,6 +576,34 @@ export async function getCoInvestors() {
 
 // --- Settings: Industries ---
 
+// --- Feature Requests ---
+
+export async function getFeatureRequests() {
+    const supabase = await createClient();
+    const { data } = await supabase
+        .from('feature_requests')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+    return data || [];
+}
+
+export async function addFeatureRequest(content: string, priority: string = 'Medium') {
+    const supabase = await createClient();
+    return await supabase.from('feature_requests').insert({ content, priority, status: 'Open' });
+}
+
+export async function updateFeatureRequest(id: string, updates: any) {
+    const supabase = await createClient();
+    return await supabase.from('feature_requests').update(updates).eq('id', id);
+}
+
+export async function deleteFeatureRequest(id: string) {
+    const supabase = await createClient();
+    return await supabase.from('feature_requests').delete().eq('id', id);
+}
+
+// --- Settings ---
 export async function getIndustries() {
     const supabase = await createClient();
 
