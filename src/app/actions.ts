@@ -1019,7 +1019,7 @@ async function syncDocuments(supabase: any, companyId: string, companyName: stri
 
     // 3. Handle Additions OR Retries (New in Payload OR Existing but missing Drive ID)
     const docsToProcess = newDocs.filter((d: any) => {
-        const existing = existingMap.get(d.url);
+        const existing = existingMap.get(d.url) as any;
         if (!existing) return true; // New
         if (!existing.drive_file_id) return true; // Retry
         return false; // Already synced
