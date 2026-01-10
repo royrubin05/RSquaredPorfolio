@@ -284,6 +284,8 @@ export function SettingsPage({ initialFunds = [], initialIndustries = [], initia
                                 </table>
                             </div>
                         </div>
+                    )}
+
                     {/* USERS TAB */}
                     {activeTab === 'users' && (
                         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-200">
