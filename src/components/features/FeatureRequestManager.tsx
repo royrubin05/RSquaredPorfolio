@@ -123,64 +123,71 @@ export function FeatureRequestManager({ initialRequests }: { initialRequests: Fe
     return (
         <div className="space-y-8">
             {/* Input Area */}
-            <div className="bg-slate-50/50 p-4 rounded-xl border border-border space-y-4">
-                <div className="flex items-center gap-3">
-                    <select
-                        value={newType}
-                        onChange={(e) => setNewType(e.target.value)}
-                        className="h-10 px-3 py-2 rounded-lg border border-border bg-white text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none"
-                    >
-                        <option value="Feature">Feature</option>
-                        <option value="Bug">Bug</option>
-                        <option value="Report">Report</option>
-                    </select>
+            {/* Input Area: Chat-style Layout */}
+            <div className="bg-white p-1 rounded-xl border border-border shadow-sm focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+                <div className="flex items-center gap-2 p-1">
+                    {/* Type Selector (Compact) */}
+                    <div className="relative">
+                        <select
+                            value={newType}
+                            onChange={(e) => setNewType(e.target.value)}
+                            className="appearance-none h-9 pl-3 pr-8 rounded-lg bg-slate-50 border border-slate-200 text-sm font-medium hover:bg-slate-100 focus:outline-none focus:border-primary transition-colors cursor-pointer"
+                        >
+                            <option value="Feature">Feature</option>
+                            <option value="Bug">Bug</option>
+                            <option value="Report">Report</option>
+                        </select>
+                        <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                            <span className="text-[10px]">▼</span>
+                        </div>
+                    </div>
+
+                    {/* Main Input */}
                     <input
                         type="text"
                         value={newRequest}
                         onChange={(e) => setNewRequest(e.target.value)}
-                        placeholder="Describe the item..."
-                        className="flex-1 h-10 px-4 py-2 rounded-lg border border-border bg-white focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                        placeholder="Describe the feature, bug, or report..."
+                        className="flex-1 h-9 px-2 bg-transparent border-none focus:ring-0 placeholder:text-muted-foreground/60 text-sm outline-none"
                         onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
                     />
+
+                    {/* File Trigger (Icon Only) */}
+                    <div className="relative shrink-0">
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleFileUpload}
+                            className="hidden"
+                            id="file-upload"
+                        />
+                        <label
+                            htmlFor="file-upload"
+                            className={`flex items-center justify-center w-9 h-9 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 cursor-pointer transition-colors ${isUploading ? 'animate-pulse' : ''}`}
+                            title="Attach File"
+                        >
+                            {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />}
+                        </label>
+                    </div>
+
+                    {/* Add Button (Compact) */}
                     <button
                         onClick={handleAdd}
                         disabled={isPending || !newRequest.trim()}
-                        className="h-10 px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors flex items-center gap-2 whitespace-nowrap"
+                        className="h-9 px-4 bg-primary text-primary-foreground rounded-lg font-medium text-sm hover:bg-primary/90 disabled:opacity-50 transition-colors flex items-center gap-2 shadow-sm"
                     >
-                        {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                        Add
+                        {isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <span>Add</span>}
                     </button>
                 </div>
 
-                {/* File Upload (Native) */}
-                <div className="flex items-center gap-2">
-                    <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleFileUpload}
-                        className="hidden"
-                        id="file-upload"
-                    />
-                    <label
-                        htmlFor="file-upload"
-                        className={`flex items-center gap-2 px-3 py-1.5 bg-white border border-border rounded-md text-xs font-medium cursor-pointer hover:bg-slate-50 transition-colors ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}
-                    >
-                        {isUploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Paperclip size={12} />}
-                        {isUploading ? 'Uploading...' : 'Attach File'}
-                    </label>
-                    <span className="text-[10px] text-muted-foreground">
-                        Supported: Images, PDF, Docs
-                    </span>
-                </div>
-
-                {/* Staged Files */}
+                {/* Staged Files (Below Input) */}
                 {attachedFiles.length > 0 && (
-                    <div className="flex flex-wrap gap-2 pt-2">
+                    <div className="flex flex-wrap gap-2 px-3 pb-3 border-t border-slate-100 pt-2 mt-1">
                         {attachedFiles.map((f, i) => (
-                            <span key={i} className="flex items-center gap-1.5 px-2 py-1 bg-white border border-dashed border-slate-300 rounded text-xs text-muted-foreground">
+                            <span key={i} className="flex items-center gap-1.5 px-2 py-1 bg-slate-50 border border-slate-200 rounded text-[10px] font-medium text-slate-600">
                                 <LinkIcon size={10} />
                                 <a href={f.url} target="_blank" className="hover:underline max-w-[150px] truncate">{f.name}</a>
-                                <button onClick={() => removeFile(i)} className="ml-1 hover:text-red-500"><X size={12} /></button>
+                                <button onClick={() => removeFile(i)} className="ml-1 hover:text-red-500 rounded-full p-0.5 hover:bg-red-50 transition-colors"><X size={10} /></button>
                             </span>
                         ))}
                     </div>
