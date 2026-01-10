@@ -198,6 +198,7 @@ export async function upsertCompany(data: any) {
 
                 if (dbError) {
                     console.error('[upsertCompany] DB Insert Failed:', dbError);
+                    return { error: `Failed to save document ${doc.name}: ${dbError.message} (Try running the drive_file_id migration)` };
                 }
             }
         }
