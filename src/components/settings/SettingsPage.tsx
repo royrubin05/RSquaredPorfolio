@@ -1,12 +1,50 @@
 "use client";
 
-import { Plus, Wallet, Edit2, Trash2, X, Check, Layers, Users, Activity, FileDigit } from "lucide-react";
+import { Plus, Wallet, Edit2, Trash2, X, Check, Layers, Users, Activity, FileDigit, Download, Archive, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 // import { INITIAL_FUNDS, INITIAL_INDUSTRIES } from "../../lib/constants"; // Removed
 import { CompanyStatusSettings } from "./CompanyStatusSettings";
 import { TeamManager } from "@/components/settings/TeamManager";
-import { upsertFund, deleteFund, saveIndustries, upsertEquityType, deleteEquityType } from "@/app/actions";
+import { upsertFund, deleteFund, saveIndustries, upsertEquityType, deleteEquityType, downloadBackup } from "@/app/actions";
 import { useRouter } from "next/navigation";
+
+function BackupButton() {
+    const [loading, setLoading] = useState(false);
+
+    const handleDownload = async () => {
+        setLoading(true);
+        try {
+            const result = await downloadBackup();
+            if (result.success && result.data) {
+                // Trigger Download
+                const link = document.createElement('a');
+                link.href = `data:application/zip;base64,${result.data}`;
+                link.download = `vc_portfolio_backup_${new Date().toISOString().split('T')[0]}.zip`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } else {
+                alert('Backup failed: ' + result.error);
+            }
+        } catch (e) {
+            console.error(e);
+            alert('An unexpected error occurred.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <button
+            onClick={handleDownload}
+            disabled={loading}
+            className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+        >
+            {loading ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+            <span>Download Backup (.zip)</span>
+        </button>
+    );
+}
 
 interface SettingsPageProps {
     initialFunds?: any[];
@@ -17,7 +55,7 @@ interface SettingsPageProps {
 
 export function SettingsPage({ initialFunds = [], initialIndustries = [], initialTeam = [], initialEquityTypes = [] }: SettingsPageProps) {
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState<'industries' | 'users' | 'statuses' | 'equity_types'>('industries');
+    const [activeTab, setActiveTab] = useState<'industries' | 'users' | 'statuses' | 'equity_types' | 'backups'>('industries');
 
     // Data State (synced with props)
     const [funds, setFunds] = useState(initialFunds);
@@ -164,6 +202,14 @@ export function SettingsPage({ initialFunds = [], initialIndustries = [], initia
                         label="User Management"
                         icon={<Users size={16} />}
                         className={activeTab === 'users' ? "text-purple-600 border-purple-600 bg-purple-50/50" : "text-purple-600/80 hover:text-purple-700 hover:bg-purple-50/30"}
+                    />
+
+                    <TabButton
+                        active={activeTab === 'backups'}
+                        onClick={() => setActiveTab('backups')}
+                        label="Backups"
+                        icon={<Archive size={16} />}
+                        className={activeTab === 'backups' ? "border-primary text-primary bg-blue-50/50" : "text-muted-foreground hover:text-foreground hover:bg-gray-50"}
                     />
                 </div>
 
