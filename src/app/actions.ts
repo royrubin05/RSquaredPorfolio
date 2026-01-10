@@ -180,8 +180,10 @@ export async function upsertCompany(data: any) {
                                 driveFolderId
                             );
                         }
-                    } catch (err) {
+                    } catch (err: any) {
                         console.error(`Failed to mirror ${doc.name} to Drive:`, err);
+                        // Return error to UI to debug
+                        return { error: `Google Drive Upload Failed: ${err.message || err}` };
                     }
                 }
 
