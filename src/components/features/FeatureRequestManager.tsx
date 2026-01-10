@@ -1,10 +1,10 @@
-
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { addFeatureRequest, deleteFeatureRequest, updateFeatureRequest } from '@/app/actions';
-import { Loader2, Plus, Trash2, CheckCircle2, Circle, Link as LinkIcon, AlertCircle, Bug, Lightbulb, FileText, X } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
+import { Loader2, Plus, Trash2, CheckCircle2, Circle, Link as LinkIcon, Paperclip, Bug, Lightbulb, FileText, X, Upload } from 'lucide-react';
 
 interface FeatureRequest {
     id: string;
@@ -23,24 +23,50 @@ export function FeatureRequestManager({ initialRequests }: { initialRequests: Fe
     // Form State
     const [newRequest, setNewRequest] = useState('');
     const [newType, setNewType] = useState('Feature');
-    const [newFileUrl, setNewFileUrl] = useState('');
     const [attachedFiles, setAttachedFiles] = useState<{ name: string, url: string }[]>([]);
 
-    const handleAddFile = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!newFileUrl) return;
+    // Upload State
+    const [isUploading, setIsUploading] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
-        // Simple validation or name extraction
-        let name = "Attached Link";
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
         try {
-            const url = new URL(newFileUrl);
-            name = url.hostname + url.pathname.slice(0, 15) + (url.pathname.length > 15 ? '...' : '');
-        } catch (e) {
-            // Invalid URL, maybe let it slide or alert? For now gentle fallback
-        }
+            setIsUploading(true);
+            const supabase = createClient();
 
-        setAttachedFiles([...attachedFiles, { name, url: newFileUrl }]);
-        setNewFileUrl('');
+            // Unique filename: timestamp_filename
+            const timestamp = new Date().getTime();
+            const filename = `${timestamp}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`; // Sanitize chars
+
+            const { data, error } = await supabase
+                .storage
+                .from('roadmap_files')
+                .upload(filename, file);
+
+            if (error) {
+                console.error('Upload failed:', error);
+                alert('Upload failed: ' + error.message);
+                return;
+            }
+
+            // Get Public URL
+            const { data: { publicUrl } } = supabase
+                .storage
+                .from('roadmap_files')
+                .getPublicUrl(filename);
+
+            setAttachedFiles([...attachedFiles, { name: file.name, url: publicUrl }]);
+
+        } catch (error: any) {
+            console.error('Error uploading:', error);
+            alert('Error uploading file.');
+        } finally {
+            setIsUploading(false);
+            if (fileInputRef.current) fileInputRef.current.value = ''; // Reset input
+        }
     };
 
     const removeFile = (index: number) => {
@@ -98,11 +124,11 @@ export function FeatureRequestManager({ initialRequests }: { initialRequests: Fe
         <div className="space-y-8">
             {/* Input Area */}
             <div className="bg-slate-50/50 p-4 rounded-xl border border-border space-y-4">
-                <div className="flex gap-3">
+                <div className="flex items-center gap-3">
                     <select
                         value={newType}
                         onChange={(e) => setNewType(e.target.value)}
-                        className="px-3 py-2 rounded-lg border border-border bg-white text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none"
+                        className="h-10 px-3 py-2 rounded-lg border border-border bg-white text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none"
                     >
                         <option value="Feature">Feature</option>
                         <option value="Bug">Bug</option>
@@ -113,38 +139,38 @@ export function FeatureRequestManager({ initialRequests }: { initialRequests: Fe
                         value={newRequest}
                         onChange={(e) => setNewRequest(e.target.value)}
                         placeholder="Describe the item..."
-                        className="flex-1 px-4 py-2 rounded-lg border border-border bg-white focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                        className="flex-1 h-10 px-4 py-2 rounded-lg border border-border bg-white focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                         onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
                     />
                     <button
                         onClick={handleAdd}
                         disabled={isPending || !newRequest.trim()}
-                        className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors flex items-center gap-2"
+                        className="h-10 px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors flex items-center gap-2 whitespace-nowrap"
                     >
                         {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                         Add
                     </button>
                 </div>
 
-                {/* File Attachment Input (Lightweight) */}
-                <div className="flex items-center gap-2 text-sm">
-                    <div className="flex-1 flex gap-2">
-                        <input
-                            type="text"
-                            value={newFileUrl}
-                            onChange={(e) => setNewFileUrl(e.target.value)}
-                            placeholder="Paste link to file (Drive, Loom, Screenshot)..."
-                            className="flex-1 px-3 py-1.5 rounded-md border border-border bg-white text-xs"
-                            onKeyDown={(e) => e.key === 'Enter' && handleAddFile(e)}
-                        />
-                        <button
-                            type="button"
-                            onClick={handleAddFile}
-                            className="px-3 py-1.5 bg-slate-100 border border-border rounded-md text-xs font-medium hover:bg-slate-200"
-                        >
-                            Attach Link
-                        </button>
-                    </div>
+                {/* File Upload (Native) */}
+                <div className="flex items-center gap-2">
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleFileUpload}
+                        className="hidden"
+                        id="file-upload"
+                    />
+                    <label
+                        htmlFor="file-upload"
+                        className={`flex items-center gap-2 px-3 py-1.5 bg-white border border-border rounded-md text-xs font-medium cursor-pointer hover:bg-slate-50 transition-colors ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}
+                    >
+                        {isUploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Paperclip size={12} />}
+                        {isUploading ? 'Uploading...' : 'Attach File'}
+                    </label>
+                    <span className="text-[10px] text-muted-foreground">
+                        Supported: Images, PDF, Docs
+                    </span>
                 </div>
 
                 {/* Staged Files */}
@@ -200,7 +226,7 @@ export function FeatureRequestManager({ initialRequests }: { initialRequests: Fe
                                                 rel="noopener noreferrer"
                                                 className="flex items-center gap-1.5 px-2 py-1 bg-slate-50 border border-border rounded text-xs text-blue-600 hover:underline hover:border-blue-200 transition-colors"
                                             >
-                                                <LinkIcon size={10} />
+                                                <Paperclip size={10} />
                                                 {f.name || 'Attachment'}
                                             </a>
                                         ))}
