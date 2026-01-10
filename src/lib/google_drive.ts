@@ -1,6 +1,7 @@
 import { google } from 'googleapis';
 import path from 'path';
 import fs from 'fs';
+import { Readable } from 'stream';
 
 // Configuration
 // Root Folder ID provided by user: 1bYjevGhablxHFTK4KwOXZVw67lgyA2iL
@@ -116,9 +117,14 @@ export async function uploadFileToDrive(
 ): Promise<string | null> {
     const drive = getDriveClient();
     try {
+        // Convert Buffer to Readable Stream
+        const body = (Buffer.isBuffer(fileStream))
+            ? Readable.from(fileStream)
+            : fileStream;
+
         const media = {
             mimeType,
-            body: fileStream,
+            body,
         };
         const fileMetadata = {
             name: fileName,
@@ -134,7 +140,7 @@ export async function uploadFileToDrive(
         return file.data.id || null;
     } catch (error) {
         console.error(`Error uploading file ${fileName} to Drive:`, error);
-        return null;
+        throw error;
     }
 }
 
