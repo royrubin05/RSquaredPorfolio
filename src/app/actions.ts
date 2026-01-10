@@ -124,86 +124,8 @@ export async function upsertCompany(data: any) {
 
     // Handle Documents with Smart Sync (Supabase + Google Drive)
     if (data.documents && Array.isArray(data.documents)) {
-        const companyId = result.id;
-        const companyName = data.name;
-
-        // 1. Fetch existing docs to identify changes
-        const { data: existingDocs } = await supabase
-            .from('company_documents')
-            .select('*')
-            .eq('company_id', companyId);
-
-        console.log(`[upsertCompany] Processing documents for ${companyName} (${companyId})`);
-        console.log(`[upsertCompany] Existing DB Docs: ${existingDocs?.length || 0}`);
-        console.log(`[upsertCompany] Payload Docs: ${data.documents.length}`);
-
-        const existingMap = new Map(existingDocs?.map(d => [d.url, d]));
-        const payloadUrls = new Set(data.documents.map((d: any) => d.url));
-
-        // 2. Handle Deletions (In DB but not in Payload)
-        const docsToDelete = existingDocs?.filter(d => !payloadUrls.has(d.url)) || [];
-        console.log(`[upsertCompany] Deleting ${docsToDelete.length} docs`);
-
-        for (const doc of docsToDelete) {
-            // Delete from Google Drive if linked
-            if (doc.drive_file_id) {
-                await deleteFileFromDrive(doc.drive_file_id);
-            }
-            // Delete from Supabase Table (The storage file itself remains in bucket? 
-            // Ideally we should delete from Bucket too to be clean, but user asked for "Action on both Supabase and Drive")
-            // We'll leave bucket cleanup for a separate maintenance task or implement here if easy.
-            // For now, removing the record hides it.
-            await supabase.from('company_documents').delete().eq('id', doc.id);
-        }
-
-        // 3. Handle Additions (In Payload but not in DB)
-        const docsToAdd = data.documents.filter((d: any) => !existingMap.has(d.url));
-
-        if (docsToAdd.length > 0) {
-            // Ensure Drive Folder Exists
-            const driveFolderId = await ensureCompanyFolder(companyName);
-
-            for (const doc of docsToAdd) {
-                let driveFileId: string | null = null;
-
-                if (driveFolderId) {
-                    try {
-                        // Fetch file content from Supabase URL
-                        const response = await fetch(doc.url);
-                        if (response.ok) {
-                            const buffer = await response.arrayBuffer();
-                            // Upload to Drive
-                            driveFileId = await uploadFileToDrive(
-                                doc.name,
-                                doc.type || 'application/octet-stream',
-                                Buffer.from(buffer),
-                                driveFolderId
-                            );
-                        }
-                    } catch (err: any) {
-                        console.error(`Failed to mirror ${doc.name} to Drive:`, err);
-                        // Return error to UI to debug
-                        return { error: `Google Drive Upload Failed: ${err.message || err}` };
-                    }
-                }
-
-                // Insert to DB
-                console.log(`[upsertCompany] Inserting doc: ${doc.name}, DriveID: ${driveFileId || 'None'}`);
-                const { error: dbError } = await supabase.from('company_documents').insert({
-                    company_id: companyId,
-                    name: doc.name,
-                    type: doc.type,
-                    size: doc.size,
-                    url: doc.url,
-                    drive_file_id: driveFileId
-                });
-
-                if (dbError) {
-                    console.error('[upsertCompany] DB Insert Failed:', dbError);
-                    return { error: `Failed to save document ${doc.name}: ${dbError.message} (Try running the drive_file_id migration)` };
-                }
-            }
-        }
+        const syncResult = await syncDocuments(supabase, result.id, data.name, data.documents, null);
+        if (syncResult && syncResult.error) return { error: syncResult.error };
     }
 
     return { success: true, data: result };
@@ -448,6 +370,17 @@ export async function upsertRound(data: any, companyId: string) {
     }
 
     const roundId = roundData.id;
+
+    // Handle Round Documents Smart Sync
+    const roundDocs = data.roundTerms?.documents;
+    if (roundDocs && Array.isArray(roundDocs)) {
+        // Fetch company name for folder
+        const { data: company } = await supabase.from('companies').select('name').eq('id', companyId).single();
+        const companyName = company?.name || 'Unknown';
+
+        const syncResult = await syncDocuments(supabase, companyId, companyName, roundDocs, roundId);
+        if (syncResult && syncResult.error) return { error: syncResult.error };
+    }
 
     // 2. Handle Allocations (Transactions)
     // First, resolve Funds to IDs
@@ -1039,5 +972,102 @@ export async function revertSafeToEquity(roundId: string) {
     if (txErr) return { error: txErr.message };
 
     revalidatePath('/');
+    return { success: true };
+}
+
+// --- Helper: Sync Documents (Supabase <-> Drive) ---
+async function syncDocuments(supabase: any, companyId: string, companyName: string, newDocs: any[], roundId: string | null = null) {
+    console.log(`[syncDocuments] Processing for ${companyName} (Round: ${roundId || 'None'})`);
+
+    // 1. Fetch existing docs to identify changes
+    let query = supabase.from('company_documents').select('*').eq('company_id', companyId);
+
+    if (roundId) {
+        query = query.eq('round_id', roundId);
+    } else {
+        query = query.is('round_id', null);
+    }
+
+    const { data: existingDocs, error: fetchError } = await query;
+    if (fetchError) {
+        console.error('[syncDocuments] Error fetching existing docs:', fetchError);
+        return { error: 'Failed to fetch existing documents: ' + fetchError.message };
+    }
+
+    console.log(`[syncDocuments] Existing Docs: ${existingDocs?.length || 0}`);
+    console.log(`[syncDocuments] Payload Docs: ${newDocs.length}`);
+
+    const existingMap = new Map(existingDocs?.map((d: any) => [d.url, d]));
+    const payloadUrls = new Set(newDocs.map((d: any) => d.url));
+
+    // 2. Handle Deletions (In DB but not in Payload)
+    const docsToDelete = existingDocs?.filter((d: any) => !payloadUrls.has(d.url)) || [];
+    console.log(`[syncDocuments] Deleting ${docsToDelete.length} docs`);
+
+    for (const doc of docsToDelete) {
+        // Delete from Google Drive if linked
+        if (doc.drive_file_id) {
+            try {
+                await deleteFileFromDrive(doc.drive_file_id);
+            } catch (err) {
+                console.error('Failed to delete from Drive (ignoring):', err);
+            }
+        }
+        // Delete from Supabase Table
+        await supabase.from('company_documents').delete().eq('id', doc.id);
+    }
+
+    // 3. Handle Additions (In Payload but not in DB)
+    const docsToAdd = newDocs.filter((d: any) => !existingMap.has(d.url));
+
+    if (docsToAdd.length > 0) {
+        // Ensure Drive Folder Exists
+        let driveFolderId = null;
+        try {
+            driveFolderId = await ensureCompanyFolder(companyName);
+        } catch (err: any) {
+            console.error('Failed to ensure company folder:', err);
+            return { error: `Google Drive Folder Error: ${err.message}` };
+        }
+
+        for (const doc of docsToAdd) {
+            let driveFileId: string | null = null;
+            if (driveFolderId) {
+                try {
+                    const response = await fetch(doc.url);
+                    if (response.ok) {
+                        const buffer = await response.arrayBuffer();
+                        driveFileId = await uploadFileToDrive(
+                            doc.name,
+                            doc.type || 'application/octet-stream',
+                            Buffer.from(buffer),
+                            driveFolderId
+                        );
+                    }
+                } catch (err: any) {
+                    console.error(`Failed to mirror ${doc.name} to Drive:`, err);
+                    return { error: `Google Drive Upload Failed: ${err.message || err}` };
+                }
+            }
+
+            // Insert to DB
+            console.log(`[syncDocuments] Inserting doc: ${doc.name}, DriveID: ${driveFileId || 'None'}`);
+            const { error: dbError } = await supabase.from('company_documents').insert({
+                company_id: companyId,
+                round_id: roundId,
+                name: doc.name,
+                type: doc.type,
+                size: doc.size,
+                url: doc.url,
+                drive_file_id: driveFileId
+            });
+
+            if (dbError) {
+                console.error('[syncDocuments] DB Insert Failed:', dbError);
+                return { error: `Failed to save document ${doc.name}: ${dbError.message} (Try running the 20260110_add_round_id_to_docs migration)` };
+            }
+        }
+    }
+
     return { success: true };
 }

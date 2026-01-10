@@ -1,14 +1,16 @@
 "use client";
 
-import { Calendar, DollarSign, Users, Plus, TrendingUp, FileText, X, StickyNote, Trash2, RefreshCw } from "lucide-react";
+import { Calendar, DollarSign, Users, Plus, TrendingUp, FileText, X, StickyNote, Trash2, RefreshCw, Pencil } from "lucide-react";
 
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { LogRoundModal } from "../dashboard/LogRoundModal";
 import { SAFEConversionModal } from "../dashboard/SAFEConversionModal";
 import { NotesManager, Note } from "../shared/NotesManager";
-import { deleteRound, upsertRound, getFunds, convertSafeToEquity, revertSafeToEquity, getEquityTypes } from "@/app/actions";
+import { NotesManager, Note } from "../shared/NotesManager";
+import { deleteRound, upsertRound, getFunds, convertSafeToEquity, revertSafeToEquity, getEquityTypes, upsertCompany } from "@/app/actions";
 import { calculateImpliedValue, formatCurrency, formatCompact, safeParseBytes, calculateMOIC } from "@/lib/calculations";
+import { CompanyCreationModal, CompanyData } from "../dashboard/CompanyCreationModal";
 
 
 
@@ -198,6 +200,19 @@ export function CompanyDetail({ initialData, funds = [] }: CompanyDetailProps) {
     // SAFE Conversion State
     const [isConversionModalOpen, setIsConversionModalOpen] = useState(false);
     const [conversionRound, setConversionRound] = useState<Round | null>(null);
+
+    // Edit Modal State
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+    const handleSaveCompany = async (data: CompanyData) => {
+        const result = await upsertCompany(data);
+        if (result.success) {
+            setIsEditModalOpen(false);
+            router.refresh();
+        } else {
+            alert(result.error || "Failed to save company changes.");
+        }
+    };
 
     useEffect(() => {
         if (initialData?.rounds) {
@@ -509,6 +524,14 @@ export function CompanyDetail({ initialData, funds = [] }: CompanyDetailProps) {
 
 
 
+            {/* Edit Company Modal */}
+            <CompanyCreationModal
+                checkIfOpen={isEditModalOpen}
+                onClose={() => setIsEditModalOpen(false)}
+                initialData={initialData as any}
+                onSave={handleSaveCompany}
+            />
+
             <div className="w-full mx-auto space-y-8">
                 {/* Company Header */}
                 <div className="space-y-6">
@@ -522,6 +545,13 @@ export function CompanyDetail({ initialData, funds = [] }: CompanyDetailProps) {
                             </p>
                         </div>
                         <div className="flex items-center gap-3">
+                            <button
+                                onClick={() => setIsEditModalOpen(true)}
+                                className="p-2 text-muted-foreground hover:text-primary hover:bg-white/50 rounded-full transition-colors"
+                                title="Edit Company"
+                            >
+                                <Pencil size={20} />
+                            </button>
                             <button
                                 onClick={() => setIsNotesModalOpen(true)}
                                 className="flex items-center gap-2 px-4 py-2 bg-white border border-border text-foreground text-sm font-medium rounded-md hover:bg-gray-50 transition-colors shadow-sm"

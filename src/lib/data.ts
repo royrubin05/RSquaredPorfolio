@@ -215,6 +215,17 @@ export async function getCompanyDetails(id: string) {
             .select('*')
             .eq('company_id', id);
 
+        // Group docs by round
+        const globalDocs = documents?.filter((d: any) => !d.round_id) || [];
+        const roundDocsMap = new Map<string, any[]>();
+        documents?.forEach((d: any) => {
+            if (d.round_id) {
+                const list = roundDocsMap.get(d.round_id) || [];
+                list.push(d);
+                roundDocsMap.set(d.round_id, list);
+            }
+        });
+
         // Map to UI Round shape
         const mappedRounds = rounds?.map(r => {
             const roundTx = transactions?.filter(t => t.round_id === r.id);
@@ -265,19 +276,21 @@ export async function getCompanyDetails(id: string) {
                     coverageType: 'percentage',
                     expirationDate: warrantTx?.warrant_expiration_date || ""
                 } : undefined,
-                documents: [] as { id?: string; name: string; type: string; size: string }[]
+                documents: (roundDocsMap.get(r.id) || []).map((d: any) => ({
+                    id: d.id,
+                    name: d.name,
+                    type: d.type || 'DOC',
+                    size: d.size || ' - ',
+                    url: d.url
+                }))
             };
         }) || [];
-
-        // Attach documents (Global company docs, not currently linked to rounds in this logic)
-        // If we want round-specific docs, we'd need a round_id col in company_documents. 
-        // For now, all docs are company-level.
 
         return {
             ...company,
             rounds: mappedRounds,
             transactions,
-            documents: documents?.map(d => ({
+            documents: globalDocs.map((d: any) => ({
                 id: d.id,
                 name: d.name,
                 type: d.type || 'DOC',
