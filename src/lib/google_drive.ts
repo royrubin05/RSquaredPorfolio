@@ -4,8 +4,8 @@ import fs from 'fs';
 import { Readable } from 'stream';
 
 // Configuration
-// Root Folder ID provided by user: 1bYjevGhablxHFTK4KwOXZVw67lgyA2iL
-const ROOT_FOLDER_ID = '1bYjevGhablxHFTK4KwOXZVw67lgyA2iL';
+// Root Folder ID provided by user: 1VE1Z5KArAE5G8hETp0MXs6SI9F5Nvqy9 (Shared Drive)
+const ROOT_FOLDER_ID = process.env.ROOT_FOLDER_ID || '0APqiJSiuSdaOUk9PVA';
 const PORTFOLIO_FOLDER_NAME = '02_Portfolio';
 const KEY_FILE_PATH = path.join(process.cwd(), 'scripts/service_account.json');
 
@@ -26,8 +26,23 @@ const getDriveClient = () => {
     }
 
     // Priority 2: Local File (Development / Scripts)
+    // Try absolute path first, then relative to project root
+    const possiblePaths = [
+        path.join(process.cwd(), 'scripts', 'service_account.json'),
+        path.join(process.cwd(), 'service_account.json'),
+        './scripts/service_account.json'
+    ];
+
+    let explicitKeyFile: string | undefined;
+    for (const p of possiblePaths) {
+        if (fs.existsSync(p)) {
+            explicitKeyFile = p;
+            break;
+        }
+    }
+
     const auth = new google.auth.GoogleAuth({
-        keyFile: KEY_FILE_PATH,
+        keyFile: explicitKeyFile || KEY_FILE_PATH, // Fallback to default
         scopes: ['https://www.googleapis.com/auth/drive'],
     });
     return google.drive({ version: 'v3', auth });
@@ -43,6 +58,8 @@ async function findFolder(name: string, parentId: string) {
             q: `mimeType='application/vnd.google-apps.folder' and name='${name}' and '${parentId}' in parents and trashed=false`,
             fields: 'files(id, name)',
             spaces: 'drive',
+            supportsAllDrives: true,
+            includeItemsFromAllDrives: true
         });
         return res.data.files?.[0] || null;
     } catch (error) {
@@ -65,6 +82,7 @@ async function createFolder(name: string, parentId: string) {
         const file = await drive.files.create({
             requestBody: fileMetadata,
             fields: 'id',
+            supportsAllDrives: true
         });
         return file.data;
     } catch (error) {
@@ -82,16 +100,13 @@ export async function ensureCompanyFolder(companyName: string): Promise<string |
         // 1. Find '02_Portfolio' inside Root
         let portfolioFolder = await findFolder(PORTFOLIO_FOLDER_NAME, ROOT_FOLDER_ID);
         if (!portfolioFolder) {
-            // Need to create it? Or assume it exists from setup script?
-            // Safer to create if missing
             console.log(`Portfolio folder not found, creating...`);
             portfolioFolder = await createFolder(PORTFOLIO_FOLDER_NAME, ROOT_FOLDER_ID);
         }
         if (!portfolioFolder?.id) throw new Error("Failed to resolve Portfolio folder");
 
         // 2. Find/Create Company Folder inside 02_Portfolio
-        // Sanitize company name for folder usage if needed (slashes etc)
-        const safeName = companyName.replace(/\//g, '-');
+        const safeName = companyName.replace(/[/\\?%*:|"<>\.]/g, '-');
         let companyFolder = await findFolder(safeName, portfolioFolder.id);
 
         if (!companyFolder) {
@@ -135,6 +150,7 @@ export async function uploadFileToDrive(
             requestBody: fileMetadata,
             media: media,
             fields: 'id',
+            supportsAllDrives: true
         });
 
         return file.data.id || null;
@@ -152,7 +168,8 @@ export async function deleteFileFromDrive(fileId: string) {
     try {
         await drive.files.update({
             fileId,
-            requestBody: { trashed: true }
+            requestBody: { trashed: true },
+            supportsAllDrives: true
         });
         return true;
     } catch (error) {
