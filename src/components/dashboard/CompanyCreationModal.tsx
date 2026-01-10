@@ -212,7 +212,6 @@ export function CompanyCreationModal({ checkIfOpen, onClose, initialData, onSave
                             <div className="space-y-2">
                                 <label className="block text-sm font-medium text-muted-foreground">Company Name</label>
                                 <input
-                                    autoFocus
                                     type="text"
                                     placeholder="e.g. Acme Corp"
                                     value={name} onChange={(e) => setName(e.target.value)}
