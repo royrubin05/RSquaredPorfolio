@@ -293,6 +293,34 @@ export function SettingsPage({ initialFunds = [], initialIndustries = [], initia
                         </div>
                     )}
 
+                    {/* BACKUPS TAB */}
+                    {activeTab === 'backups' && (
+                        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                            <div className="bg-white rounded-xl shadow-sm border border-border overflow-hidden">
+                                <div className="px-6 py-4 border-b border-border bg-gray-50/50">
+                                    <h3 className="text-lg font-semibold text-foreground">Data Backup & Export</h3>
+                                    <p className="text-sm text-muted-foreground">Download a complete snapshot of your portfolio data.</p>
+                                </div>
+                                <div className="p-6">
+                                    <div className="flex items-start gap-4 p-4 border border-blue-100 bg-blue-50/50 rounded-lg text-blue-900 mb-6">
+                                        <div className="p-2 bg-blue-100 rounded-md">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" x2="12" y1="15" y2="3" /></svg>
+                                        </div>
+                                        <div>
+                                            <h4 className="font-medium mb-1">Backup Archive (.zip)</h4>
+                                            <p className="text-sm opacity-90 mb-2">
+                                                Includes individual CSV files for Funds, Companies, and Rounds, plus a
+                                                <strong> Master Ledger CSV</strong> optimized for Excel Pivot Tables.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <BackupButton />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
 
                 </div>
             </div>

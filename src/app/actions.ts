@@ -637,6 +637,19 @@ export async function getCoInvestors() {
     return coInvestors;
 }
 
+// --- Backup ---
+import { generateBackup } from '@/lib/export';
+
+export async function downloadBackup() {
+    try {
+        const base64 = await generateBackup();
+        return { success: true, data: base64 };
+    } catch (error: any) {
+        console.error('Backup failed:', error);
+        return { success: false, error: error.message };
+    }
+}
+
 // --- Settings: Industries ---
 
 // --- Feature Requests ---
