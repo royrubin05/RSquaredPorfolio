@@ -6,6 +6,7 @@ import fs from 'fs';
 import path from 'path';
 import { setSession, clearSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
+import { ensureCompanyFolder, uploadFileToDrive, deleteFileFromDrive } from '@/lib/google_drive';
 
 // --- Auth ---
 
@@ -121,30 +122,73 @@ export async function upsertCompany(data: any) {
 
     revalidatePath('/'); // Revalidate dashboard
 
-    // Handle Documents
-    // We do a full sync: delete existing and re-insert active ones
-    // This assumes the UI passes the COMPLETE list of desired documents
+    // Handle Documents with Smart Sync (Supabase + Google Drive)
     if (data.documents && Array.isArray(data.documents)) {
         const companyId = result.id;
+        const companyName = data.name;
 
-        // 1. Delete all existing docs for this company (Simple Replace Strategy)
-        // Check if we can improve this to differential update later if needed
-        await supabase.from('company_documents').delete().eq('company_id', companyId);
+        // 1. Fetch existing docs to identify changes
+        const { data: existingDocs } = await supabase
+            .from('company_documents')
+            .select('*')
+            .eq('company_id', companyId);
 
-        // 2. Insert new ones
-        if (data.documents.length > 0) {
-            const docsToInsert = data.documents.map((d: any) => ({
-                company_id: companyId,
-                name: d.name,
-                type: d.type,
-                size: d.size,
-                url: d.url
-            }));
+        const existingMap = new Map(existingDocs?.map(d => [d.url, d]));
+        const payloadUrls = new Set(data.documents.map((d: any) => d.url));
 
-            const { error: docError } = await supabase.from('company_documents').insert(docsToInsert);
-            if (docError) {
-                console.error('Error saving documents:', docError);
-                // Non-fatal? Maybe warn.
+        // 2. Handle Deletions (In DB but not in Payload)
+        const docsToDelete = existingDocs?.filter(d => !payloadUrls.has(d.url)) || [];
+
+        for (const doc of docsToDelete) {
+            // Delete from Google Drive if linked
+            if (doc.drive_file_id) {
+                await deleteFileFromDrive(doc.drive_file_id);
+            }
+            // Delete from Supabase Table (The storage file itself remains in bucket? 
+            // Ideally we should delete from Bucket too to be clean, but user asked for "Action on both Supabase and Drive")
+            // We'll leave bucket cleanup for a separate maintenance task or implement here if easy.
+            // For now, removing the record hides it.
+            await supabase.from('company_documents').delete().eq('id', doc.id);
+        }
+
+        // 3. Handle Additions (In Payload but not in DB)
+        const docsToAdd = data.documents.filter((d: any) => !existingMap.has(d.url));
+
+        if (docsToAdd.length > 0) {
+            // Ensure Drive Folder Exists
+            const driveFolderId = await ensureCompanyFolder(companyName);
+
+            for (const doc of docsToAdd) {
+                let driveFileId: string | null = null;
+
+                if (driveFolderId) {
+                    try {
+                        // Fetch file content from Supabase URL
+                        const response = await fetch(doc.url);
+                        if (response.ok) {
+                            const buffer = await response.arrayBuffer();
+                            // Upload to Drive
+                            driveFileId = await uploadFileToDrive(
+                                doc.name,
+                                doc.type || 'application/octet-stream',
+                                Buffer.from(buffer),
+                                driveFolderId
+                            );
+                        }
+                    } catch (err) {
+                        console.error(`Failed to mirror ${doc.name} to Drive:`, err);
+                    }
+                }
+
+                // Insert to DB
+                await supabase.from('company_documents').insert({
+                    company_id: companyId,
+                    name: doc.name,
+                    type: doc.type,
+                    size: doc.size,
+                    url: doc.url,
+                    drive_file_id: driveFileId
+                });
             }
         }
     }
