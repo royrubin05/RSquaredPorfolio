@@ -133,11 +133,16 @@ export async function upsertCompany(data: any) {
             .select('*')
             .eq('company_id', companyId);
 
+        console.log(`[upsertCompany] Processing documents for ${companyName} (${companyId})`);
+        console.log(`[upsertCompany] Existing DB Docs: ${existingDocs?.length || 0}`);
+        console.log(`[upsertCompany] Payload Docs: ${data.documents.length}`);
+
         const existingMap = new Map(existingDocs?.map(d => [d.url, d]));
         const payloadUrls = new Set(data.documents.map((d: any) => d.url));
 
         // 2. Handle Deletions (In DB but not in Payload)
         const docsToDelete = existingDocs?.filter(d => !payloadUrls.has(d.url)) || [];
+        console.log(`[upsertCompany] Deleting ${docsToDelete.length} docs`);
 
         for (const doc of docsToDelete) {
             // Delete from Google Drive if linked
@@ -181,7 +186,8 @@ export async function upsertCompany(data: any) {
                 }
 
                 // Insert to DB
-                await supabase.from('company_documents').insert({
+                console.log(`[upsertCompany] Inserting doc: ${doc.name}, DriveID: ${driveFileId || 'None'}`);
+                const { error: dbError } = await supabase.from('company_documents').insert({
                     company_id: companyId,
                     name: doc.name,
                     type: doc.type,
@@ -189,6 +195,10 @@ export async function upsertCompany(data: any) {
                     url: doc.url,
                     drive_file_id: driveFileId
                 });
+
+                if (dbError) {
+                    console.error('[upsertCompany] DB Insert Failed:', dbError);
+                }
             }
         }
     }
