@@ -238,148 +238,148 @@ export function CompanyCreationModal({ checkIfOpen, onClose, initialData, onSave
                                         </select>
                                     </div>
                                 </div>
+                            </div>
 
+                            <div className="space-y-2">
+                                <label className="block text-sm font-medium text-muted-foreground">Status</label>
+                                <select
+                                    value={status} onChange={(e) => setStatus(e.target.value)}
+                                    className="w-full px-4 py-2 border border-border rounded-md text-sm bg-white"
+                                >
+                                    {(availableStatuses || ['Active', 'Watchlist', 'Exit', 'Shutdown']).map(s => (
+                                        <option key={s} value={s}>{s}</option>
+                                    ))}
+                                </select>
+                            </div>
 
+                            <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <label className="block text-sm font-medium text-muted-foreground">Status</label>
-                                    <select
-                                        value={status} onChange={(e) => setStatus(e.target.value)}
-                                        className="w-full px-4 py-2 border border-border rounded-md text-sm bg-white"
-                                    >
-                                        {(availableStatuses || ['Active', 'Watchlist', 'Exit', 'Shutdown']).map(s => (
-                                            <option key={s} value={s}>{s}</option>
-                                        ))}
-                                    </select>
+                                    <label className="block text-sm font-medium text-muted-foreground">Website</label>
+                                    <input
+                                        type="url"
+                                        placeholder="https://example.com"
+                                        value={website} onChange={(e) => setWebsite(e.target.value)}
+                                        className="w-full px-4 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                                    />
                                 </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <label className="block text-sm font-medium text-muted-foreground">Website</label>
-                                        <input
-                                            type="url"
-                                            placeholder="https://example.com"
-                                            value={website} onChange={(e) => setWebsite(e.target.value)}
-                                            className="w-full px-4 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="block text-sm font-medium text-muted-foreground">Affinity Link</label>
-                                        <input
-                                            type="url"
-                                            placeholder="https://affinity.co/..."
-                                            value={affinityLink} onChange={(e) => setAffinityLink(e.target.value)}
-                                            className="w-full px-4 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <label className="block text-sm font-medium text-muted-foreground">Category</label>
-                                        <select
-                                            value={category} onChange={(e) => setCategory(e.target.value)}
-                                            className="w-full px-4 py-2 border border-border rounded-md text-sm bg-white"
-                                        >
-                                            <option value="">Select Category...</option>
-                                            {categoryList.length > 0 ? (
-                                                categoryList.map(c => <option key={c} value={c}>{c}</option>)
-                                            ) : (
-                                                // Fallback if loading
-                                                <>
-                                                    <option value="AI">AI</option>
-                                                    <option value="SaaS">SaaS</option>
-                                                </>
-                                            )}
-                                        </select>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="block text-sm font-medium text-muted-foreground">Focus</label>
-                                        <input
-                                            type="text"
-                                            placeholder="e.g. B2B / Consumer"
-                                            // Using 'jurisdiction' field as flexible 'Focus/Sub-sector' field for now in UI if not strictly mapped
-                                            // Or we can just keep it as is. 
-                                            // Wait, the original had 'Category' select hardcoded.
-                                            value={jurisdiction} onChange={(e) => setJurisdiction(e.target.value)}
-                                            className="w-full px-4 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-                                        />
-                                    </div>
-                                </div>
-
-
-
-                                {/* Legal / Formation */}
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <label className="block text-sm font-medium text-muted-foreground">Formation Date</label>
-                                        <input
-                                            type="date"
-                                            value={formationDate} onChange={(e) => setFormationDate(e.target.value)}
-                                            className="w-full px-4 py-2 border border-border rounded-md text-sm bg-white"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="block text-sm font-medium text-muted-foreground">Jurisdiction</label>
-                                        <input
-                                            type="text"
-                                            placeholder="e.g. Delaware, Cayman"
-                                            value={jurisdiction} onChange={(e) => setJurisdiction(e.target.value)}
-                                            className="w-full px-4 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-                                        />
-                                    </div>
-                                </div>
-
                                 <div className="space-y-2">
-                                    <label className="block text-sm font-medium text-muted-foreground">What does the company do?</label>
-                                    <textarea
-                                        value={description} onChange={(e) => setDescription(e.target.value)}
-                                        className="w-full px-4 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary min-h-[120px]"
-                                        placeholder="Detailed description of the company business model and traction..."
+                                    <label className="block text-sm font-medium text-muted-foreground">Affinity Link</label>
+                                    <input
+                                        type="url"
+                                        placeholder="https://affinity.co/..."
+                                        value={affinityLink} onChange={(e) => setAffinityLink(e.target.value)}
+                                        className="w-full px-4 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary"
                                     />
                                 </div>
                             </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="block text-sm font-medium text-muted-foreground">Category</label>
+                                    <select
+                                        value={category} onChange={(e) => setCategory(e.target.value)}
+                                        className="w-full px-4 py-2 border border-border rounded-md text-sm bg-white"
+                                    >
+                                        <option value="">Select Category...</option>
+                                        {categoryList.length > 0 ? (
+                                            categoryList.map(c => <option key={c} value={c}>{c}</option>)
+                                        ) : (
+                                            // Fallback if loading
+                                            <>
+                                                <option value="AI">AI</option>
+                                                <option value="SaaS">SaaS</option>
+                                            </>
+                                        )}
+                                    </select>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="block text-sm font-medium text-muted-foreground">Focus</label>
+                                    <input
+                                        type="text"
+                                        placeholder="e.g. B2B / Consumer"
+                                        // Using 'jurisdiction' field as flexible 'Focus/Sub-sector' field for now in UI if not strictly mapped
+                                        // Or we can just keep it as is. 
+                                        // Wait, the original had 'Category' select hardcoded.
+                                        value={jurisdiction} onChange={(e) => setJurisdiction(e.target.value)}
+                                        className="w-full px-4 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                                    />
+                                </div>
+                            </div>
+
+
+
+                            {/* Legal / Formation */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="block text-sm font-medium text-muted-foreground">Formation Date</label>
+                                    <input
+                                        type="date"
+                                        value={formationDate} onChange={(e) => setFormationDate(e.target.value)}
+                                        className="w-full px-4 py-2 border border-border rounded-md text-sm bg-white"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="block text-sm font-medium text-muted-foreground">Jurisdiction</label>
+                                    <input
+                                        type="text"
+                                        placeholder="e.g. Delaware, Cayman"
+                                        value={jurisdiction} onChange={(e) => setJurisdiction(e.target.value)}
+                                        className="w-full px-4 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="block text-sm font-medium text-muted-foreground">What does the company do?</label>
+                                <textarea
+                                    value={description} onChange={(e) => setDescription(e.target.value)}
+                                    className="w-full px-4 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary min-h-[120px]"
+                                    placeholder="Detailed description of the company business model and traction..."
+                                />
+                            </div>
+                        </div>
                     )}
 
-                            {/* TAB: NOTES */}
-                            {/* TAB: NOTES */}
-                            {activeTab === 'notes' && (
-                                <NotesManager notes={notes} onNotesChange={setNotes} />
-                            )}
+                    {/* TAB: NOTES */}
+                    {/* TAB: NOTES */}
+                    {activeTab === 'notes' && (
+                        <NotesManager notes={notes} onNotesChange={setNotes} />
+                    )}
 
-                            {/* TAB: DOCUMENTS */}
-                            {activeTab === 'documents' && (
-                                <DocumentsManager documents={documents} onDocumentsChange={setDocuments} />
+                    {/* TAB: DOCUMENTS */}
+                    {activeTab === 'documents' && (
+                        <DocumentsManager documents={documents} onDocumentsChange={setDocuments} />
 
-                            )}
+                    )}
 
-                        </div>
-
-                {/* Footer */}
-                    <div className="px-6 py-4 border-t border-border flex justify-end items-center bg-gray-50/50">
-                        <button
-                            onClick={handleSave}
-                            className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm"
-                        >
-                            {initialData ? 'Save Changes' : 'Create Company'}
-                            <Check size={16} />
-                        </button>
-                    </div>
                 </div>
 
-                {/* Success Confirmation Modal */}
-                {showConfirmModal && (
-                    <div className="absolute inset-0 z-[60] flex items-center justify-center bg-black/10 backdrop-blur-[2px] animate-in fade-in duration-200">
-                        <div className="bg-white rounded-xl shadow-2xl border border-border p-8 w-[360px] text-center transform scale-100 animate-in zoom-in-95 duration-200">
-                            <div className="w-16 h-16 bg-green-50 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm border border-green-100">
-                                <Check size={32} />
-                            </div>
-                            <h3 className="text-xl font-bold text-gray-900 mb-2">Saved Successfully</h3>
-                            <p className="text-sm text-gray-500">
-                                {initialData ? 'Company details have been updated.' : 'New portfolio company created.'}
-                            </p>
-                        </div>
-                    </div>
-                )}
+                {/* Footer */}
+                <div className="px-6 py-4 border-t border-border flex justify-end items-center bg-gray-50/50">
+                    <button
+                        onClick={handleSave}
+                        className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm"
+                    >
+                        {initialData ? 'Save Changes' : 'Create Company'}
+                        <Check size={16} />
+                    </button>
+                </div>
             </div>
-            );
+
+            {/* Success Confirmation Modal */}
+            {showConfirmModal && (
+                <div className="absolute inset-0 z-[60] flex items-center justify-center bg-black/10 backdrop-blur-[2px] animate-in fade-in duration-200">
+                    <div className="bg-white rounded-xl shadow-2xl border border-border p-8 w-[360px] text-center transform scale-100 animate-in zoom-in-95 duration-200">
+                        <div className="w-16 h-16 bg-green-50 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm border border-green-100">
+                            <Check size={32} />
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">Saved Successfully</h3>
+                        <p className="text-sm text-gray-500">
+                            {initialData ? 'Company details have been updated.' : 'New portfolio company created.'}
+                        </p>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
 }
