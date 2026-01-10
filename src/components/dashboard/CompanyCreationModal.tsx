@@ -28,12 +28,13 @@ interface CompanyCreationModalProps {
     checkIfOpen: boolean;
     onClose: () => void;
     initialData?: CompanyData | null;
-    onSave: (data: CompanyData) => void;
+    onSave: (data: CompanyData) => Promise<boolean>; // Return true if successful
     availableStatuses?: string[];
 }
 
 export function CompanyCreationModal({ checkIfOpen, onClose, initialData, onSave, availableStatuses }: CompanyCreationModalProps) {
     const [activeTab, setActiveTab] = useState<'profile' | 'documents' | 'notes'>('profile');
+    const [isSaving, setIsSaving] = useState(false);
 
     // Form State
     const [name, setName] = useState("");
@@ -63,6 +64,7 @@ export function CompanyCreationModal({ checkIfOpen, onClose, initialData, onSave
     // Reset or Populate on Open
     useEffect(() => {
         if (checkIfOpen) {
+            setIsSaving(false);
             if (initialData) {
                 // ...
                 setName(initialData.name || "");
@@ -120,7 +122,10 @@ export function CompanyCreationModal({ checkIfOpen, onClose, initialData, onSave
 
     if (!checkIfOpen) return null;
 
-    const handleSave = () => {
+    const handleSave = async () => {
+        if (isSaving) return;
+        setIsSaving(true);
+
         const companyData: CompanyData = {
             id: initialData?.id, // Preserve ID if editing
             name,
@@ -135,12 +140,21 @@ export function CompanyCreationModal({ checkIfOpen, onClose, initialData, onSave
             description,
             documents
         };
-        onSave(companyData);
-        setShowConfirmModal(true);
+
+        try {
+            const success = await onSave(companyData);
+            if (success) {
+                setShowConfirmModal(true);
+            }
+        } catch (error) {
+            console.error("Save failed:", error);
+            // Parent handles alert
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     // Notes
-
 
 
 
@@ -347,10 +361,11 @@ export function CompanyCreationModal({ checkIfOpen, onClose, initialData, onSave
                 <div className="px-6 py-4 border-t border-border flex justify-end items-center bg-gray-50/50">
                     <button
                         onClick={handleSave}
-                        className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm"
+                        disabled={isSaving}
+                        className={`flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm ${isSaving ? 'opacity-70 cursor-wait' : ''}`}
                     >
-                        {initialData ? 'Save Changes' : 'Create Company'}
-                        <Check size={16} />
+                        {isSaving ? 'Saving...' : (initialData ? 'Save Changes' : 'Create Company')}
+                        {!isSaving && <Check size={16} />}
                     </button>
                 </div>
             </div>

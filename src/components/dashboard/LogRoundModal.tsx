@@ -31,7 +31,7 @@ interface LogRoundModalProps {
     isOpen?: boolean; // Added for compatibility with CompanyDetail usage
     onClose: () => void;
     companyName: string;
-    onSave: (data: any) => Promise<void> | void;
+    onSave: (data: any) => Promise<boolean>;
     initialData?: any;
     funds?: { id: string; name: string }[];
 }
@@ -190,10 +190,12 @@ export function LogRoundModal({ checkIfOpen, isOpen, onClose, companyName, onSav
             };
 
             // Call the parent onSave logic
-            await onSave(payload);
+            const success = await onSave(payload);
 
             // Show Success Modal ONLY after successful save
-            setShowConfirmModal(true);
+            if (success) {
+                setShowConfirmModal(true);
+            }
         } catch (error) {
             console.error("Error saving round:", error);
             alert("Failed to save round. Please try again.");

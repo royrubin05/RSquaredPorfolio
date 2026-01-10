@@ -1,7 +1,7 @@
 "use client";
 
 import Link from 'next/link';
-import { Home, PieChart, Users, BookOpen, Settings, Lightbulb, LogOut } from 'lucide-react';
+import { Home, PieChart, Users, BookOpen, Settings, Lightbulb, LogOut, LifeBuoy } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { logout } from '@/app/actions';
 
@@ -49,6 +49,7 @@ export function AppShell({ children }: AppShellProps) {
           <NavLink href="/calculations" icon={<BookOpen size={20} />} label="Logic & Formulas" />
           <NavLink href="/features" icon={<Lightbulb size={20} />} label="Roadmap & Reporting" />
           <NavLink href="/settings" icon={<Settings size={20} />} label="Settings" />
+          <NavLink href="/help" icon={<LifeBuoy size={20} />} label="Help & Guide" />
 
           <button
             onClick={() => logout()}

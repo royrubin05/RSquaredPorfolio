@@ -208,8 +208,10 @@ export function CompanyDetail({ initialData, funds = [] }: CompanyDetailProps) {
         if (result.success) {
             setIsEditModalOpen(false);
             router.refresh();
+            return true;
         } else {
             alert(result.error || "Failed to save company changes.");
+            return false;
         }
     };
 
@@ -373,24 +375,22 @@ export function CompanyDetail({ initialData, funds = [] }: CompanyDetailProps) {
     // Save Handlers
     // Save Handlers
     const handleSaveRound = async (data: any) => {
-        // Optimistic update or just wait for server?
-        // Let's wait for server for robust data consistency.
-
         if (!initialData?.id) {
             alert("Error: Company ID missing.");
-            return;
+            return false;
         }
 
         const result = await upsertRound(data, initialData.id);
 
         if (result.error) {
             alert(result.error);
-            return;
+            return false;
         }
 
         router.refresh();
         setEditingRoundData(null);
         setIsLogRoundOpen(false);
+        return true;
     };
 
     const handleDeleteRound = async (e: React.MouseEvent, roundId: string) => {
