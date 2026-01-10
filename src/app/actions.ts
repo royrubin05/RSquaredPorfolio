@@ -1059,7 +1059,7 @@ async function syncDocuments(supabase: any, companyId: string, companyName: stri
             }
 
             // Insert or Update DB
-            const existing = existingMap.get(doc.url);
+            const existing = existingMap.get(doc.url) as any;
 
             if (existing) {
                 // Update existing record
