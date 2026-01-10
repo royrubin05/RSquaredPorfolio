@@ -7,7 +7,6 @@ import { useState, useEffect } from "react";
 import { LogRoundModal } from "../dashboard/LogRoundModal";
 import { SAFEConversionModal } from "../dashboard/SAFEConversionModal";
 import { NotesManager, Note } from "../shared/NotesManager";
-import { NotesManager, Note } from "../shared/NotesManager";
 import { deleteRound, upsertRound, getFunds, convertSafeToEquity, revertSafeToEquity, getEquityTypes, upsertCompany } from "@/app/actions";
 import { calculateImpliedValue, formatCurrency, formatCompact, safeParseBytes, calculateMOIC } from "@/lib/calculations";
 import { CompanyCreationModal, CompanyData } from "../dashboard/CompanyCreationModal";
