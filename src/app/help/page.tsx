@@ -130,7 +130,7 @@ export default function HelpPage() {
 
                             <Card title="Logging a SAFE">
                                 <ol className="list-decimal list-inside space-y-3 text-sm text-gray-600">
-                                    <li>In the "Log Round" modal > Round Terms tab.</li>
+                                    <li>In the "Log Round" modal → Round Terms tab.</li>
                                     <li>Select <strong>Structure: SAFE / Convertible</strong>.</li>
                                     <li>Enter the <strong>Cap</strong> (e.g., $15M) and <strong>Discount</strong> (e.g., 20%).</li>
                                     <li>Enter your investment amount in the Position tab.</li>
