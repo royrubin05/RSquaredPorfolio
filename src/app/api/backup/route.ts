@@ -1,31 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateBackup } from '@/lib/export';
-
-// Vercel Cron jobs are authorized by a secret header
-// Or we can just leave it public but obscure if no sensitive data is returned (here we return status only)
-// But to be safe, we should check for a CRON_SECRET if desired.
-// For now, we will allow it to run and just log success, as requested.
+import { ensureBackupFolder, uploadFileToDrive } from '@/lib/google_drive';
 
 export async function GET(req: NextRequest) {
-    // Optional: Check Auth
-    // const authHeader = req.headers.get('authorization');
-    // if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    //     return new NextResponse('Unauthorized', { status: 401 });
-    // }
-
     try {
         console.log('[Cron] Starting Backup Generation...');
-        // In a real cron scenario (without storage), we can't do much with the file except return it
-        // or email it.
-        // Since the user asked for the service to be "able to run through a cron job",
-        // we essentially just validate that the generation works.
-        // If we had an email service, we would send it here.
 
-        await generateBackup(); // Just run the logic to ensure no crashes
+        // 1. Generate Backup (Returns Base64)
+        const base64Data = await generateBackup();
+        const buffer = Buffer.from(base64Data, 'base64');
 
-        console.log('[Cron] Backup Generation Successful.');
+        // 2. Prepare Filename
+        const dateStr = new Date().toISOString().split('T')[0];
+        const fileName = `vc_portfolio_backup_${dateStr}.zip`;
 
-        return NextResponse.json({ success: true, message: 'Backup generated successfully. (No persistence configured)' });
+        // 3. Ensure Backup Folder
+        const backupFolderId = await ensureBackupFolder();
+        if (!backupFolderId) {
+            throw new Error("Failed to resolve 01_Backups folder.");
+        }
+
+        // 4. Upload to Drive
+        console.log(`[Cron] Uploading ${fileName} to Drive...`);
+        const fileId = await uploadFileToDrive(fileName, 'application/zip', buffer, backupFolderId);
+
+        if (!fileId) {
+            throw new Error("Failed to upload backup to Drive.");
+        }
+
+        console.log(`[Cron] Backup Uploaded Successfully. ID: ${fileId}`);
+
+        return NextResponse.json({
+            success: true,
+            message: `Backup generated and uploaded to Drive. File ID: ${fileId}`
+        });
+
     } catch (error: any) {
         console.error('[Cron] Backup Failed:', error);
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
