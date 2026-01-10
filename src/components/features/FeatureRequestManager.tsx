@@ -170,11 +170,24 @@ export function FeatureRequestManager({ initialRequests }: { initialRequests: Fe
                         </label>
                     </div>
 
-                    {/* Add Button (Compact) */}
+                    {/* Add Button (Standardized) */}
                     <button
-                        onClick={handleAdd}
+                        onClick={async () => {
+                            if (!newRequest.trim()) return;
+                            const res = await addFeatureRequest(newRequest, 'Medium', newType, attachedFiles);
+                            if (res.error) {
+                                alert("Failed to add item: " + res.error.message);
+                                return;
+                            }
+                            setNewRequest('');
+                            setAttachedFiles([]);
+                            setNewType('Feature');
+                            startTransition(() => {
+                                router.refresh();
+                            });
+                        }}
                         disabled={isPending || !newRequest.trim()}
-                        className="h-9 px-4 bg-primary text-primary-foreground rounded-lg font-medium text-sm hover:bg-primary/90 disabled:opacity-50 transition-colors flex items-center gap-2 shadow-sm"
+                        className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-md font-medium text-sm hover:bg-primary/90 disabled:opacity-50 transition-colors shadow-sm h-9"
                     >
                         {isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <span>Add</span>}
                     </button>
