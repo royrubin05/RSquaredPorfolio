@@ -211,7 +211,7 @@ export async function getCompanyDetails(id: string) {
 
         // Fetch documents
         const { data: documents } = await supabase
-            .from('documents')
+            .from('company_documents')
             .select('*')
             .eq('company_id', id);
 
@@ -269,16 +269,9 @@ export async function getCompanyDetails(id: string) {
             };
         }) || [];
 
-        // Attach documents
-        mappedRounds.forEach(r => {
-            const roundDocs = documents?.filter(d => d.round_id === r.id) || [];
-            r.documents = roundDocs.map(d => ({
-                id: d.id,
-                name: d.name,
-                type: d.file_type || 'DOC',
-                size: d.size_bytes ? `${(d.size_bytes / 1024).toFixed(0)} KB` : ' - '
-            }));
-        });
+        // Attach documents (Global company docs, not currently linked to rounds in this logic)
+        // If we want round-specific docs, we'd need a round_id col in company_documents. 
+        // For now, all docs are company-level.
 
         return {
             ...company,
@@ -287,9 +280,9 @@ export async function getCompanyDetails(id: string) {
             documents: documents?.map(d => ({
                 id: d.id,
                 name: d.name,
-                type: d.file_type || 'DOC',
-                size: d.size_bytes ? `${(d.size_bytes / 1024).toFixed(0)} KB` : ' - ',
-                date: new Date(d.created_at).toLocaleDateString()
+                type: d.type || 'DOC',
+                size: d.size || ' - ',
+                url: d.url
             })) || []
         };
     } catch (err) {

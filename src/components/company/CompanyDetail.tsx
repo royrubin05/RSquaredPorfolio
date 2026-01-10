@@ -482,14 +482,14 @@ export function CompanyDetail({ initialData, funds = [] }: CompanyDetailProps) {
                             ) : (
                                 <ul className="space-y-2">
                                     {initialData.documents.map((doc: any, idx: number) => (
-                                        <DocItem key={idx} name={doc.name} type={doc.type} size={doc.size} />
+                                        <DocItem key={idx} name={doc.name} type={doc.type} size={doc.size} url={doc.url} />
                                     ))}
                                 </ul>
                             )}
                         </div>
                         <div className="px-6 py-4 border-t border-border bg-gray-50/50 flex justify-end">
                             <button
-                                onClick={() => alert("Document upload integration coming in next sprint.")}
+                                onClick={() => alert("To add more documents, please edit the company details.")}
                                 className="flex items-center gap-2 text-primary hover:underline text-sm font-medium"
                             >
                                 <Plus size={14} /> Upload New Document
@@ -534,14 +534,14 @@ export function CompanyDetail({ initialData, funds = [] }: CompanyDetailProps) {
                                 className="flex items-center gap-2 px-4 py-2 bg-white border border-border text-foreground text-sm font-medium rounded-md hover:bg-gray-50 transition-colors shadow-sm"
                             >
                                 <StickyNote size={16} className="text-muted-foreground" />
-                                <span>Notes</span>
+                                <span className="hidden sm:inline">Notes</span>
                             </button>
                             <button
                                 onClick={() => setIsDocsModalOpen(true)}
                                 className="flex items-center gap-2 px-4 py-2 bg-white border border-border text-foreground text-sm font-medium rounded-md hover:bg-gray-50 transition-colors shadow-sm"
                             >
                                 <FileText size={16} className="text-muted-foreground" />
-                                <span>Documents</span>
+                                <span className="hidden sm:inline">Documents</span>
                             </button>
                             <button
                                 onClick={handleOpenNewRound}
@@ -599,7 +599,6 @@ export function CompanyDetail({ initialData, funds = [] }: CompanyDetailProps) {
                         </div>
                     </div>
                 </div>
-
             </div>
 
             {/* Warrants Alert Card */}
@@ -746,18 +745,35 @@ export function CompanyDetail({ initialData, funds = [] }: CompanyDetailProps) {
     );
 }
 
-function DocItem({ name, type, size }: { name: string; type: string; size: string }) {
+function DocItem({ name, type, size, url }: { name: string; type: string; size: string; url?: string }) {
+    if (!url) {
+        // Fallback for missing URLs
+        return (
+            <li className="flex items-center justify-between p-1.5 rounded bg-gray-50 opacity-50 cursor-not-allowed">
+                <div className="flex items-center gap-2">
+                    <FileText size={14} className="text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">{name}</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono">
+                    <span>{size}</span>
+                </div>
+            </li>
+        );
+    }
+
     return (
-        <li className="flex items-center justify-between group cursor-pointer p-1.5 rounded hover:bg-gray-50 transition-colors">
-            <div className="flex items-center gap-2">
-                <FileText size={14} className="text-muted-foreground group-hover:text-primary transition-colors" />
-                <span className="text-sm text-foreground group-hover:underline decoration-border underline-offset-2">{name}</span>
-            </div>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono">
-                <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-gray-100 px-1 rounded">{type}</span>
-                <span>{size}</span>
-            </div>
-        </li>
+        <a href={url} target="_blank" rel="noopener noreferrer" className="block">
+            <li className="flex items-center justify-between group cursor-pointer p-1.5 rounded hover:bg-gray-50 transition-colors">
+                <div className="flex items-center gap-2">
+                    <FileText size={14} className="text-muted-foreground group-hover:text-primary transition-colors" />
+                    <span className="text-sm text-foreground group-hover:underline decoration-border underline-offset-2">{name}</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono">
+                    <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-gray-100 px-1 rounded">{type}</span>
+                    <span>{size}</span>
+                </div>
+            </li>
+        </a>
     )
 }
 
