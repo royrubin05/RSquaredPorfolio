@@ -487,14 +487,7 @@ export function CompanyDetail({ initialData, funds = [] }: CompanyDetailProps) {
                                 </ul>
                             )}
                         </div>
-                        <div className="px-6 py-4 border-t border-border bg-gray-50/50 flex justify-end">
-                            <button
-                                onClick={() => alert("To add more documents, please edit the company details.")}
-                                className="flex items-center gap-2 text-primary hover:underline text-sm font-medium"
-                            >
-                                <Plus size={14} /> Upload New Document
-                            </button>
-                        </div>
+                        {/* Upload button removed as per user request - use Edit Company to manage docs */}
                     </div>
                 </div>
             )}
