@@ -113,19 +113,19 @@ export function CompanyList({ initialCompanies = [], initialFunds = [] }: { init
         setIsCreateModalOpen(true);
     };
 
-    const handleSaveCompany = async (data: CompanyData) => {
+    const handleSaveCompany = async (data: CompanyData): Promise<boolean> => {
         setIsLoading(true);
         const result = await upsertCompany(data);
         if (result.error) {
             alert(`Error saving company: ${result.error}`);
+            setIsLoading(false);
+            return false;
         } else {
-            // Success - Next.js Server Action revalidates, we just need to refresh the view to see updated InitialProps
             router.refresh();
             setIsCreateModalOpen(false);
-            // Optionally update local list optimistically?
-            // For now, rely on refresh.
+            setIsLoading(false);
+            return true;
         }
-        setIsLoading(false);
     };
 
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
