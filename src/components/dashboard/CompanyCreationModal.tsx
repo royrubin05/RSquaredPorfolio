@@ -291,18 +291,7 @@ export function CompanyCreationModal({ checkIfOpen, onClose, initialData, onSave
                                         )}
                                     </select>
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="block text-sm font-medium text-muted-foreground">Focus</label>
-                                    <input
-                                        type="text"
-                                        placeholder="e.g. B2B / Consumer"
-                                        // Using 'jurisdiction' field as flexible 'Focus/Sub-sector' field for now in UI if not strictly mapped
-                                        // Or we can just keep it as is. 
-                                        // Wait, the original had 'Category' select hardcoded.
-                                        value={jurisdiction} onChange={(e) => setJurisdiction(e.target.value)}
-                                        className="w-full px-4 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-                                    />
-                                </div>
+
                             </div>
 
 
