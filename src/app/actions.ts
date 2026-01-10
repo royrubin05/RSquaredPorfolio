@@ -723,59 +723,6 @@ export async function saveIndustries(industries: string[]) {
     return { success: true };
 }
 
-// --- Settings: Team / Users ---
-
-export async function getTeamMembers() {
-    const supabase = await createClient();
-    const { data, error } = await supabase.from('team_members').select('*').order('created_at', { ascending: true });
-
-    if (error) {
-        console.error('Error fetching team:', JSON.stringify(error, null, 2));
-        // Fallback or empty if table table doesn't exist yet (migration pending)
-        return [];
-    }
-
-    return data || [];
-}
-
-export async function upsertTeamMember(data: any) {
-    const supabase = await createClient();
-
-    const payload = {
-        name: data.name,
-        email: data.email,
-        role: data.role || 'Viewer',
-        status: data.status || 'Active'
-    };
-
-    // Handle ID if updating
-    if (data.id) {
-        Object.assign(payload, { id: data.id });
-    }
-
-    const { error } = await supabase.from('team_members').upsert(payload);
-
-    if (error) {
-        console.error('Error saving team member:', error);
-        return { error: error.message };
-    }
-
-    revalidatePath('/');
-    return { success: true };
-}
-
-export async function deleteTeamMember(id: string) {
-    const supabase = await createClient();
-    const { error } = await supabase.from('team_members').delete().eq('id', id);
-
-    if (error) {
-        return { error: error.message };
-    }
-
-    revalidatePath('/');
-    return { success: true };
-}
-
 // --- Log Round: Syndicate Search ---
 
 export async function searchInvestors(query: string) {
