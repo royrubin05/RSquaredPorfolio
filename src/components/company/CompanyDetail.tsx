@@ -555,6 +555,12 @@ export function CompanyDetail({ initialData, funds = [] }: CompanyDetailProps) {
 
                     <div className="flex gap-12 border-t border-border pt-6 overflow-x-auto pb-2">
                         <div>
+                            <div className="text-xs font-medium text-muted-foreground uppercase whitespace-nowrap">Total Raised</div>
+                            <div className="text-2xl font-bold text-foreground font-mono mt-1">
+                                {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: "compact", maximumFractionDigits: 1 }).format(totalRaised)}
+                            </div>
+                        </div>
+                        <div>
                             <div className="text-xs font-medium text-muted-foreground uppercase whitespace-nowrap">Total Shares</div>
                             <div className="text-2xl font-bold text-foreground font-mono mt-1">
                                 {new Intl.NumberFormat('en-US').format(
@@ -589,12 +595,6 @@ export function CompanyDetail({ initialData, funds = [] }: CompanyDetailProps) {
                                     totalRSquaredInvested,
                                     Object.values(fundHoldings).reduce((sum, h) => sum + (h.impliedValue || 0), 0)
                                 )}
-                            </div>
-                        </div>
-                        <div>
-                            <div className="text-xs font-medium text-muted-foreground uppercase whitespace-nowrap">Total Raised</div>
-                            <div className="text-2xl font-bold text-foreground font-mono mt-1">
-                                {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: "compact", maximumFractionDigits: 1 }).format(totalRaised)}
                             </div>
                         </div>
                     </div>
