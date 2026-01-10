@@ -699,9 +699,9 @@ export async function getFeatureRequests() {
     return data || [];
 }
 
-export async function addFeatureRequest(content: string, priority: string = 'Medium') {
+export async function addFeatureRequest(content: string, priority: string = 'Medium', type: string = 'Feature', files: any[] = []) {
     const supabase = await createClient();
-    return await supabase.from('feature_requests').insert({ content, priority, status: 'Open' });
+    return await supabase.from('feature_requests').insert({ content, priority, type, files, status: 'Open' });
 }
 
 export async function updateFeatureRequest(id: string, updates: any) {

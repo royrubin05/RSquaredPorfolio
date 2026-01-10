@@ -47,7 +47,7 @@ export function AppShell({ children }: AppShellProps) {
             </div>
           </div>
           <NavLink href="/calculations" icon={<BookOpen size={20} />} label="Logic & Formulas" />
-          <NavLink href="/features" icon={<Lightbulb size={20} />} label="Roadmap" />
+          <NavLink href="/features" icon={<Lightbulb size={20} />} label="Roadmap & Reporting" />
           <NavLink href="/settings" icon={<Settings size={20} />} label="Settings" />
 
           <button

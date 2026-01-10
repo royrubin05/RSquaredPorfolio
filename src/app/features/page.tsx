@@ -16,10 +16,10 @@ export default async function FeaturesPage() {
                 </div>
                 <div>
                     <h1 className="text-3xl font-bold text-foreground tracking-tight">
-                        Feature Requests & Notes
+                        Roadmap, Bugs & Reporting
                     </h1>
                     <p className="text-muted-foreground mt-1">
-                        Track ideas, roadmap items, and feature requests for the portfolio system.
+                        Track feature requests, report bugs, and view system roadmap.
                     </p>
                 </div>
             </div>
