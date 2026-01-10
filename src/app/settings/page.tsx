@@ -26,7 +26,6 @@ export default async function Page() {
                 <SettingsPage
                     initialFunds={funds}
                     initialIndustries={industries}
-                    initialTeam={team}
                     initialEquityTypes={equityTypes}
                 />
             </section>
