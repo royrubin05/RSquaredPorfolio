@@ -4,6 +4,69 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import fs from 'fs';
 import path from 'path';
+import { setSession, clearSession } from '@/lib/auth';
+import { redirect } from 'next/navigation';
+
+// --- Auth ---
+
+export async function login(email: string, password: string) {
+    const supabase = await createClient();
+
+    // Fetch user
+    const { data: user, error } = await supabase
+        .from('team_members')
+        .select('*')
+        .eq('email', email)
+        .single();
+
+    if (error || !user) {
+        return { success: false, error: 'User not found' };
+    }
+
+    // Check password (Plain text for Alpha as requested, TODO: Hash)
+    if (user.password !== password) {
+        return { success: false, error: 'Invalid password' };
+    }
+
+    // Set session
+    await setSession(user.id);
+    return { success: true };
+}
+
+export async function logout() {
+    await clearSession();
+    redirect('/login');
+}
+
+// --- Team Management ---
+
+export async function addTeamMember(data: any) {
+    const supabase = await createClient();
+    const { error } = await supabase.from('team_members').insert({
+        name: data.name,
+        email: data.email,
+        password: data.password, // Store as provided
+        role: 'Admin', // Force Admin as requested
+        status: 'Active'
+    });
+
+    if (error) return { success: false, error: error.message };
+    revalidatePath('/settings');
+    return { success: true };
+}
+
+export async function getTeamMembers() {
+    const supabase = await createClient();
+    const { data } = await supabase.from('team_members').select('*').order('created_at');
+    return data || [];
+}
+
+export async function deleteTeamMember(id: string) {
+    const supabase = await createClient();
+    await supabase.from('team_members').delete().eq('id', id);
+    revalidatePath('/settings');
+}
+
 
 const LOG_FILE = '/tmp/vc_debug_log.txt';
 

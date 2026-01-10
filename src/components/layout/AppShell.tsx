@@ -1,8 +1,9 @@
 "use client";
 
 import Link from 'next/link';
-import { Home, PieChart, Users, BookOpen, Settings, Lightbulb } from 'lucide-react';
+import { Home, PieChart, Users, BookOpen, Settings, Lightbulb, LogOut } from 'lucide-react';
 import { usePathname } from 'next/navigation';
+import { logout } from '@/app/actions';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -45,6 +46,15 @@ export function AppShell({ children }: AppShellProps) {
           <NavLink href="/calculations" icon={<BookOpen size={20} />} label="Logic & Formulas" />
           <NavLink href="/features" icon={<Lightbulb size={20} />} label="Roadmap" />
           <NavLink href="/settings" icon={<Settings size={20} />} label="Settings" />
+
+          <button
+            onClick={() => logout()}
+            className="flex w-full items-center gap-3 px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded-lg transition-all mt-2"
+          >
+            <LogOut size={20} />
+            <span>Logout</span>
+          </button>
+
           <div className="px-3 py-2 text-[10px] text-muted-foreground/40 font-mono text-center mt-2">
             v{process.env.NEXT_PUBLIC_GIT_COMMIT || '2.4.0-beta'}
           </div>
