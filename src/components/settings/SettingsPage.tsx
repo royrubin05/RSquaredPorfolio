@@ -4,40 +4,39 @@ import { Plus, Wallet, Edit2, Trash2, X, Check, Layers, Users, Activity, FileDig
 import { useState, useEffect } from "react";
 // import { INITIAL_FUNDS, INITIAL_INDUSTRIES } from "../../lib/constants"; // Removed
 import { CompanyStatusSettings } from "./CompanyStatusSettings";
-import { upsertFund, deleteFund, saveIndustries, upsertTeamMember, deleteTeamMember, upsertEquityType, deleteEquityType } from "@/app/actions";
+import { upsertFund, deleteFund, saveIndustries, upsertEquityType, deleteEquityType } from "@/app/actions";
 import { useRouter } from "next/navigation";
 
 interface SettingsPageProps {
     initialFunds?: any[];
     initialIndustries?: any[];
-    initialTeam?: any[];
     initialEquityTypes?: any[];
 }
 
-export function SettingsPage({ initialFunds = [], initialIndustries = [], initialTeam = [], initialEquityTypes = [] }: SettingsPageProps) {
+export function SettingsPage({ initialFunds = [], initialIndustries = [], initialEquityTypes = [] }: SettingsPageProps) {
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState<'industries' | 'users' | 'statuses' | 'equity_types'>('industries');
+    const [activeTab, setActiveTab] = useState<'industries' | 'statuses' | 'equity_types'>('industries');
 
     // Data State (synced with props)
     const [funds, setFunds] = useState(initialFunds);
     const [industries, setIndustries] = useState(initialIndustries);
-    const [users, setUsers] = useState(initialTeam);
+
     const [equityTypes, setEquityTypes] = useState(initialEquityTypes);
 
     useEffect(() => { setFunds(initialFunds); }, [initialFunds]);
     useEffect(() => { setIndustries(initialIndustries); }, [initialIndustries]);
-    useEffect(() => { setUsers(initialTeam); }, [initialTeam]);
+
     useEffect(() => { setEquityTypes(initialEquityTypes); }, [initialEquityTypes]);
 
     // Modals
     const [isAddFundOpen, setIsAddFundOpen] = useState(false);
     const [isAddIndustryOpen, setIsAddIndustryOpen] = useState(false);
-    const [isAddUserOpen, setIsAddUserOpen] = useState(false);
+
     const [isAddEquityTypeOpen, setIsAddEquityTypeOpen] = useState(false);
 
     const [selectedFund, setSelectedFund] = useState<any>(null);
     const [selectedIndustry, setSelectedIndustry] = useState<any>(null);
-    const [selectedUser, setSelectedUser] = useState<any>(null);
+
     const [selectedEquityType, setSelectedEquityType] = useState<any>(null);
 
     // --- Handlers ---
@@ -80,18 +79,7 @@ export function SettingsPage({ initialFunds = [], initialIndustries = [], initia
     };
     const openEditIndustry = (industry: any) => { setSelectedIndustry(industry); setIsAddIndustryOpen(true); }
 
-    // Users
-    const handleDeleteUser = async (id: any) => {
-        if (confirm("Are you sure you want to delete this user?")) {
-            await deleteTeamMember(id);
-        }
-    };
-    const handleAddUser = async (userData: any) => {
-        await upsertTeamMember(userData);
-        setIsAddUserOpen(false);
-        setSelectedUser(null);
-    };
-    const openEditUser = (user: any) => { setSelectedUser(user); setIsAddUserOpen(true); }
+
 
     // Equity Types
     const handleDeleteEquityType = async (id: string) => {
@@ -127,13 +115,7 @@ export function SettingsPage({ initialFunds = [], initialIndustries = [], initia
                 initialData={selectedIndustry}
             />
 
-            <AddUserModal
-                isOpen={isAddUserOpen}
-                onClose={() => { setIsAddUserOpen(false); setSelectedUser(null); }}
-                onSave={handleAddUser}
-                initialData={selectedUser}
 
-            />
 
             <AddEquityTypeModal
                 isOpen={isAddEquityTypeOpen}
@@ -174,13 +156,7 @@ export function SettingsPage({ initialFunds = [], initialIndustries = [], initia
 
                     <div className="flex-1"></div>
 
-                    <TabButton
-                        active={activeTab === 'users'}
-                        onClick={() => setActiveTab('users')}
-                        label="User Management"
-                        icon={<Users size={16} />}
-                        className={activeTab === 'users' ? "text-purple-600 border-purple-600 bg-purple-50/50" : "text-purple-600/80 hover:text-purple-700 hover:bg-purple-50/30"}
-                    />
+
                 </div>
 
                 {/* Tab Content */}
@@ -302,78 +278,7 @@ export function SettingsPage({ initialFunds = [], initialIndustries = [], initia
                         </div>
                     )}
 
-                    {/* USERS TAB */}
-                    {activeTab === 'users' && (
-                        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-200">
-                            <div className="flex justify-between items-end">
-                                <div>
-                                    <h2 className="text-lg font-medium text-foreground">User Management</h2>
-                                    <p className="text-sm text-muted-foreground mt-1">Control access to the platform.</p>
-                                </div>
-                                <button
-                                    onClick={() => setIsAddUserOpen(true)}
-                                    className="flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-md hover:bg-primary/90 transition-colors shadow-sm"
-                                >
-                                    <Plus size={16} />
-                                    <span>Add User</span>
-                                </button>
-                            </div>
 
-                            <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
-                                <table className="w-full text-sm">
-                                    <thead className="bg-gray-50/50">
-                                        <tr className="border-b border-border text-left">
-                                            <th className="px-6 py-3 font-medium text-muted-foreground uppercase text-xs tracking-wider">User</th>
-                                            <th className="px-6 py-3 font-medium text-muted-foreground uppercase text-xs tracking-wider">Role</th>
-                                            <th className="px-6 py-3 font-medium text-muted-foreground uppercase text-xs tracking-wider">Status</th>
-                                            <th className="px-6 py-3 font-medium text-muted-foreground uppercase text-xs tracking-wider text-right">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-border bg-white">
-                                        {users.map((user) => (
-                                            <tr key={user.id} className="group hover:bg-gray-50/50 transition-colors">
-                                                <td className="px-6 py-4">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">
-                                                            {user.name.charAt(0)}
-                                                        </div>
-                                                        <div>
-                                                            <div className="font-medium text-foreground">{user.name}</div>
-                                                            <div className="text-xs text-muted-foreground">{user.email}</div>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4 text-muted-foreground">
-                                                    <span className="inline-flex items-center px-2 py-1 rounded-md bg-gray-100 text-xs font-medium text-gray-700 border border-gray-200">
-                                                        {user.role}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-green-50 text-green-700 text-xs font-medium border border-green-200">
-                                                        <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                                                        {user.status}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-4 text-right">
-                                                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <button onClick={() => openEditUser(user)} className="p-1 text-muted-foreground hover:text-primary transition-colors">
-                                                            <Edit2 size={16} />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleDeleteUser(user.id)}
-                                                            className="p-1 text-muted-foreground hover:text-red-600 transition-colors"
-                                                        >
-                                                            <Trash2 size={16} />
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    )}
                 </div>
             </div>
         </div>
