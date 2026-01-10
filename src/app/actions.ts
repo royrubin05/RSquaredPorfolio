@@ -120,6 +120,35 @@ export async function upsertCompany(data: any) {
     }
 
     revalidatePath('/'); // Revalidate dashboard
+
+    // Handle Documents
+    // We do a full sync: delete existing and re-insert active ones
+    // This assumes the UI passes the COMPLETE list of desired documents
+    if (data.documents && Array.isArray(data.documents)) {
+        const companyId = result.id;
+
+        // 1. Delete all existing docs for this company (Simple Replace Strategy)
+        // Check if we can improve this to differential update later if needed
+        await supabase.from('company_documents').delete().eq('company_id', companyId);
+
+        // 2. Insert new ones
+        if (data.documents.length > 0) {
+            const docsToInsert = data.documents.map((d: any) => ({
+                company_id: companyId,
+                name: d.name,
+                type: d.type,
+                size: d.size,
+                url: d.url
+            }));
+
+            const { error: docError } = await supabase.from('company_documents').insert(docsToInsert);
+            if (docError) {
+                console.error('Error saving documents:', docError);
+                // Non-fatal? Maybe warn.
+            }
+        }
+    }
+
     return { success: true, data: result };
 }
 

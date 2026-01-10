@@ -11,10 +11,16 @@ from googleapiclient.http import MediaFileUpload
 # --- CONFIGURATION ---
 # Load these from environment variables or a .env file
 # Ensure you have 'psycopg2-binary' and 'google-api-python-client' 'google-auth' installed
+# DATABASE_URL should be set in environment or .env
 DATABASE_URL = os.getenv("DATABASE_URL")
 BACKUP_DIR = Path("backups")
-GDRIVE_SERVICE_ACCOUNT_FILE = os.getenv("GDRIVE_SERVICE_ACCOUNT_FILE", "service_account.json")
-GDRIVE_FOLDER_ID = os.getenv("GDRIVE_FOLDER_ID") # Optional: specific folder ID in Drive
+
+# Google Drive Configuration
+# Path is relative to the root where the script is run
+GDRIVE_SERVICE_ACCOUNT_FILE = 'scripts/service_account.json' 
+# The ID of the '99_Backups' folder we created in backup_to_drive.py
+# (ID: 1Ne-SidjJO272Ol8KtM3hWsUGJoeLHAoJ)
+GDRIVE_FOLDER_ID = '1Ne-SidjJO272Ol8KtM3hWsUGJoeLHAoJ' 
 RETENTION_DAYS = 30
 
 def log(msg):
