@@ -1,7 +1,7 @@
 "use client";
 
 import Link from 'next/link';
-import { Home, PieChart, Users, BookOpen, Settings } from 'lucide-react';
+import { Home, PieChart, Users, BookOpen, Settings, Lightbulb } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 
 interface AppShellProps {
@@ -43,6 +43,7 @@ export function AppShell({ children }: AppShellProps) {
             </div>
           </div>
           <NavLink href="/calculations" icon={<BookOpen size={20} />} label="Logic & Formulas" />
+          <NavLink href="/features" icon={<Lightbulb size={20} />} label="Roadmap" />
           <NavLink href="/settings" icon={<Settings size={20} />} label="Settings" />
           <div className="px-3 py-2 text-[10px] text-muted-foreground/40 font-mono text-center mt-2">
             v{process.env.NEXT_PUBLIC_GIT_COMMIT || '2.4.0-beta'}

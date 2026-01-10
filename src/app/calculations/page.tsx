@@ -1,13 +1,9 @@
 
-import { Calculator, Lightbulb } from "lucide-react";
-import { FeatureRequestManager } from "@/components/features/FeatureRequestManager";
-import { getFeatureRequests } from "@/app/actions";
+import { Calculator } from "lucide-react";
 
 export const dynamic = 'force-dynamic';
 
-export default async function CalculationsPage() {
-    const featureRequests = await getFeatureRequests();
-
+export default function CalculationsPage() {
     return (
         <div className="flex-1 w-full p-6 md:p-8 space-y-8 max-w-4xl mx-auto">
             {/* Header */}
@@ -22,19 +18,6 @@ export default async function CalculationsPage() {
                     <em>Logic centralized in <code>src/lib/calculations.ts</code></em>.
                 </p>
             </div>
-
-            {/* Feature Requests Section */}
-            <section className="bg-card border border-border rounded-xl shadow-sm p-6 space-y-4">
-                <div className="flex items-center gap-3 border-b border-border pb-2">
-                    <div className="p-1.5 bg-amber-100 text-amber-700 rounded-lg">
-                        <Lightbulb className="w-4 h-4" />
-                    </div>
-                    <h2 className="text-lg font-semibold text-foreground">
-                        Feature Requests & Notes
-                    </h2>
-                </div>
-                <FeatureRequestManager initialRequests={featureRequests} />
-            </section>
 
             <div className="grid gap-8">
                 {/* Implied Value */}
