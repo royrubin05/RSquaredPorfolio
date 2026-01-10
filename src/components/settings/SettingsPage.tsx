@@ -77,6 +77,14 @@ export function SettingsPage({ initialFunds = [], initialIndustries = [], initia
     const [selectedFund, setSelectedFund] = useState<any>(null);
     const [selectedIndustry, setSelectedIndustry] = useState<any>(null);
 
+    // UI State
+    const [origin, setOrigin] = useState('');
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            setOrigin(window.location.origin);
+        }
+    }, []);
+
     const [selectedEquityType, setSelectedEquityType] = useState<any>(null);
 
     // --- Handlers ---
@@ -362,6 +370,38 @@ export function SettingsPage({ initialFunds = [], initialIndustries = [], initia
                                     </div>
 
                                     <BackupButton />
+                                </div>
+                            </div>
+
+                            {/* Cron Job Card */}
+                            <div className="bg-white rounded-xl shadow-sm border border-border overflow-hidden">
+                                <div className="px-6 py-4 border-b border-border bg-gray-50/50">
+                                    <h3 className="text-lg font-semibold text-foreground">Automated Backups (Cron)</h3>
+                                    <p className="text-sm text-muted-foreground">Use this endpoint to schedule automated daily backups.</p>
+                                </div>
+                                <div className="p-6">
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-foreground mb-2">Endpoint URL</label>
+                                            <div className="flex items-center gap-2">
+                                                <div className="flex-1 bg-slate-950 text-slate-50 px-4 py-3 rounded-md font-mono text-sm break-all">
+                                                    <span className="text-blue-400 font-bold mr-2">GET</span>
+                                                    {origin ? `${origin}/api/backup` : '/api/backup'}
+                                                </div>
+                                                <button
+                                                    onClick={() => navigator.clipboard.writeText(`${origin}/api/backup`)}
+                                                    className="p-3 bg-white border border-border rounded-md hover:bg-gray-50 transition-colors text-muted-foreground hover:text-foreground"
+                                                    title="Copy URL"
+                                                >
+                                                    <FileDigit size={16} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div className="text-sm text-muted-foreground p-4 bg-gray-50 rounded-lg border border-border">
+                                            <p className="font-medium text-foreground mb-1">Configuration Note:</p>
+                                            <p>Set your generic cron service (e.g. GitHub Actions, Vercel Cron, EasyCron) to send a GET request to this URL once per day.</p>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>

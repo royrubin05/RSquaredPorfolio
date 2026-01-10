@@ -507,6 +507,41 @@ export async function upsertRound(data: any, companyId: string) {
         }
     }
 
+    // 5. Handle Syndicate (Co-Investors)
+    if (data.syndicate?.coInvestors?.length > 0) {
+        for (const coName of data.syndicate.coInvestors) {
+            // Filter out placeholders and empty strings
+            if (!coName || coName.trim() === '' || coName === '-' || coName.length < 2) continue;
+
+            // Find or Create Investor
+            let investorId;
+            const { data: existingInvestor } = await supabase
+                .from('investors')
+                .select('id')
+                .eq('name', coName)
+                .maybeSingle();
+
+            if (existingInvestor) {
+                investorId = existingInvestor.id;
+            } else {
+                const { data: newInvestor } = await supabase
+                    .from('investors')
+                    .insert({ name: coName, type: 'VC' })
+                    .select()
+                    .single();
+                investorId = newInvestor?.id;
+            }
+
+            if (investorId) {
+                await supabase.from('round_syndicate').insert({
+                    round_id: roundId,
+                    investor_id: investorId,
+                    role: 'Co-Investor'
+                });
+            }
+        }
+    }
+
     revalidatePath('/');
     return { success: true };
 }

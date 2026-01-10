@@ -77,9 +77,17 @@ export function CompanyList({ initialCompanies = [], initialFunds = [] }: { init
         // ... (existing logic) ...
     }, [initialCompanies]);
 
-    const filteredCompanies = selectedFund === "All Funds"
-        ? companies
-        : companies.filter(c => c.funds?.includes(selectedFund));
+    const [searchQuery, setSearchQuery] = useState("");
+
+    const filteredCompanies = companies.filter(c => {
+        const matchesFund = selectedFund === "All Funds" || c.funds?.includes(selectedFund);
+        const searchLower = searchQuery.toLowerCase();
+        const matchesSearch = !searchQuery ||
+            c.name?.toLowerCase().includes(searchLower) ||
+            c.category?.toLowerCase().includes(searchLower);
+
+        return matchesFund && matchesSearch;
+    });
 
     const handleCreateNew = () => {
         setSelectedCompany(null);
@@ -207,16 +215,29 @@ export function CompanyList({ initialCompanies = [], initialFunds = [] }: { init
                             <span>New Company</span>
                         </button>
 
+                        <div className="relative flex items-center">
+                            <Search size={16} className="absolute left-3 text-muted-foreground z-10" />
+                            <input
+                                type="text"
+                                placeholder="Search companies..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="pl-9 pr-4 py-2 bg-white border border-border text-foreground text-sm font-medium rounded-l-md hover:bg-gray-50 transition-colors shadow-sm focus:outline-none focus:ring-1 focus:ring-primary w-64 border-r-0"
+                            />
+                        </div>
+
                         <div className="relative">
-                            <Filter size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                             <select
                                 value={selectedFund}
                                 onChange={(e) => setSelectedFund(e.target.value)}
-                                className="pl-9 pr-4 py-2 bg-white border border-border text-foreground text-sm font-medium rounded-md hover:bg-gray-50 transition-colors shadow-sm focus:outline-none focus:ring-1 focus:ring-primary appearance-none cursor-pointer"
+                                className="pl-4 pr-10 py-2 bg-white border border-border text-foreground text-sm font-medium rounded-r-md hover:bg-gray-50 transition-colors shadow-sm focus:outline-none focus:ring-1 focus:ring-primary appearance-none cursor-pointer border-l-0"
                             >
                                 <option value="All Funds">All Funds</option>
                                 {funds.map(f => <option key={f.id} value={f.name}>{f.name}</option>)}
                             </select>
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
+                            </div>
                         </div>
                     </div>
                 </div>

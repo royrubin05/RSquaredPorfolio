@@ -95,8 +95,8 @@ export function LogRoundModal({ checkIfOpen, isOpen, onClose, companyName, onSav
             setWarrantCoverage(initialData?.position?.warrantCoverage || "");
             setWarrantCoverageType(initialData?.position?.warrantCoverageType || "percentage");
             setWarrantExpiration(initialData?.position?.warrantExpiration || "");
-            setLeads(initialData?.syndicate?.leads || []);
-            setCoInvestors(initialData?.syndicate?.coInvestors || []);
+            setLeads((initialData?.syndicate?.leads || []).filter((l: string) => l !== '-'));
+            setCoInvestors((initialData?.syndicate?.coInvestors || []).filter((l: string) => l !== '-'));
         }
     }, [isOpen, checkIfOpen, initialData]);
 
@@ -222,7 +222,7 @@ export function LogRoundModal({ checkIfOpen, isOpen, onClose, companyName, onSav
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm transition-all duration-300">
-            <div className="w-[900px] bg-white rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="w-[1100px] bg-white rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
 
                 {/* Header - Vibrant */}
                 <div className="px-6 py-4 border-b border-border bg-gradient-to-r from-gray-50 via-white to-gray-50 flex justify-between items-center">
