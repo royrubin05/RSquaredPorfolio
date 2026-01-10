@@ -10,6 +10,9 @@ interface AppShellProps {
 }
 
 export function AppShell({ children }: AppShellProps) {
+  const pathname = usePathname();
+  if (pathname === '/login') return <>{children}</>;
+
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background text-foreground">
       {/* Sidebar - Richer, subtle gradient */}
