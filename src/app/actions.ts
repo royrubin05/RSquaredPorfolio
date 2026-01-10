@@ -1017,54 +1017,76 @@ async function syncDocuments(supabase: any, companyId: string, companyName: stri
         await supabase.from('company_documents').delete().eq('id', doc.id);
     }
 
-    // 3. Handle Additions (In Payload but not in DB)
-    const docsToAdd = newDocs.filter((d: any) => !existingMap.has(d.url));
+    // 3. Handle Additions OR Retries (New in Payload OR Existing but missing Drive ID)
+    const docsToProcess = newDocs.filter((d: any) => {
+        const existing = existingMap.get(d.url);
+        if (!existing) return true; // New
+        if (!existing.drive_file_id) return true; // Retry
+        return false; // Already synced
+    });
 
-    if (docsToAdd.length > 0) {
+    if (docsToProcess.length > 0) {
         // Ensure Drive Folder Exists
-        let driveFolderId = null;
-        try {
-            driveFolderId = await ensureCompanyFolder(companyName);
-        } catch (err: any) {
-            console.error('Failed to ensure company folder:', err);
-            return { error: `Google Drive Folder Error: ${err.message}` };
+        const driveFolderId = await ensureCompanyFolder(companyName);
+        if (!driveFolderId) {
+            console.error('[syncDocuments] Failed to resolve Drive folder.');
+            return { error: 'Google Drive Error: Could not resolve "02_Portfolio" or Company Folder. Check Service Account permissions.' };
         }
 
-        for (const doc of docsToAdd) {
+        for (const doc of docsToProcess) {
             let driveFileId: string | null = null;
-            if (driveFolderId) {
-                try {
-                    const response = await fetch(doc.url);
-                    if (response.ok) {
-                        const buffer = await response.arrayBuffer();
-                        driveFileId = await uploadFileToDrive(
-                            doc.name,
-                            doc.type || 'application/octet-stream',
-                            Buffer.from(buffer),
-                            driveFolderId
-                        );
-                    }
-                } catch (err: any) {
-                    console.error(`Failed to mirror ${doc.name} to Drive:`, err);
-                    return { error: `Google Drive Upload Failed: ${err.message || err}` };
+
+            try {
+                console.log(`[syncDocuments] Mirroring to Drive: ${doc.name}`);
+                const response = await fetch(doc.url);
+                if (!response.ok) throw new Error(`Fetch failed: ${response.statusText}`);
+
+                const buffer = await response.arrayBuffer();
+                driveFileId = await uploadFileToDrive(
+                    doc.name,
+                    doc.type || 'application/octet-stream',
+                    Buffer.from(buffer),
+                    driveFolderId
+                );
+
+                if (!driveFileId) {
+                    throw new Error("Upload failed (Service returned null ID). Check permissions.");
                 }
+
+            } catch (err: any) {
+                console.error(`Failed to mirror ${doc.name} to Drive:`, err);
+                return { error: `Google Drive Upload Failed: ${err.message || err}` };
             }
 
-            // Insert to DB
-            console.log(`[syncDocuments] Inserting doc: ${doc.name}, DriveID: ${driveFileId || 'None'}`);
-            const { error: dbError } = await supabase.from('company_documents').insert({
-                company_id: companyId,
-                round_id: roundId,
-                name: doc.name,
-                type: doc.type,
-                size: doc.size,
-                url: doc.url,
-                drive_file_id: driveFileId
-            });
+            // Insert or Update DB
+            const existing = existingMap.get(doc.url);
 
-            if (dbError) {
-                console.error('[syncDocuments] DB Insert Failed:', dbError);
-                return { error: `Failed to save document ${doc.name}: ${dbError.message} (Try running the 20260110_add_round_id_to_docs migration)` };
+            if (existing) {
+                // Update existing record
+                console.log(`[syncDocuments] Updating existing doc ${existing.id} with DriveID: ${driveFileId}`);
+                const { error: dbError } = await supabase
+                    .from('company_documents')
+                    .update({ drive_file_id: driveFileId })
+                    .eq('id', existing.id);
+
+                if (dbError) return { error: `Failed to update document record: ${dbError.message}` };
+
+            } else {
+                // Insert new record
+                console.log(`[syncDocuments] Inserting doc: ${doc.name}, DriveID: ${driveFileId}`);
+                const { error: dbError } = await supabase.from('company_documents').insert({
+                    company_id: companyId,
+                    round_id: roundId,
+                    name: doc.name,
+                    type: doc.type,
+                    size: doc.size,
+                    url: doc.url,
+                    drive_file_id: driveFileId
+                });
+
+                if (dbError) {
+                    return { error: `Failed to save document ${doc.name}: ${dbError.message} (Try running the migration)` };
+                }
             }
         }
     }
