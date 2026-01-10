@@ -177,3 +177,20 @@ export async function deleteFileFromDrive(fileId: string) {
         return false;
     }
 }
+
+/**
+ * Ensures '01_Backups' folder exists in Root.
+ */
+export async function ensureBackupFolder(): Promise<string | null> {
+    try {
+        let backupFolder = await findFolder('01_Backups', ROOT_FOLDER_ID);
+        if (!backupFolder) {
+            console.log(`Backup folder not found, creating...`);
+            backupFolder = await createFolder('01_Backups', ROOT_FOLDER_ID);
+        }
+        return backupFolder?.id || null;
+    } catch (error) {
+        console.error("Error managing backup folder:", error);
+        return null;
+    }
+}
