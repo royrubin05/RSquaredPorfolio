@@ -10,8 +10,21 @@ const KEY_FILE_PATH = path.join(process.cwd(), 'scripts/service_account.json');
 
 // Initialize Auth
 const getDriveClient = () => {
-    // In production, we might want to support ENV var for credentials content
-    // For now, consistent with Python scripts, we use the local JSON file
+    // Priority 1: Environment Variable (Vercel Production)
+    if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
+        try {
+            const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+            const auth = new google.auth.GoogleAuth({
+                credentials,
+                scopes: ['https://www.googleapis.com/auth/drive'],
+            });
+            return google.drive({ version: 'v3', auth });
+        } catch (e) {
+            console.error("Failed to parse GOOGLE_SERVICE_ACCOUNT_JSON:", e);
+        }
+    }
+
+    // Priority 2: Local File (Development / Scripts)
     const auth = new google.auth.GoogleAuth({
         keyFile: KEY_FILE_PATH,
         scopes: ['https://www.googleapis.com/auth/drive'],
