@@ -111,3 +111,32 @@ export function calculateMOIC(invested: number, value: number): string {
     const moic = value / invested;
     return `${moic.toFixed(1)}x`;
 }
+
+/**
+ * Calculates shares for a specific transaction in a multi-transaction round,
+ * respecting explicit overrides (Total Round Shares) or falling back to Price Per Share.
+ * 
+ * @param investmentAmount Amount invested in this transaction
+ * @param pps Price Per Share
+ * @param totalRoundShares (Optional) Explicit Total Shares for the entire round (e.g. from User Input)
+ * @param totalRoundInvestment (Optional) Total Investment for the entire round (required for proportional split)
+ */
+export function calculateTransactionShares(
+    investmentAmount: number,
+    pps: number,
+    totalRoundShares: number | null | undefined,
+    totalRoundInvestment: number | null | undefined
+): number {
+    // Priority 1: Distribute explicit Total Shares (User Intent)
+    if (totalRoundShares && totalRoundShares > 0 && totalRoundInvestment && totalRoundInvestment > 0) {
+        const fraction = investmentAmount / totalRoundInvestment;
+        return Math.floor(totalRoundShares * fraction);
+    }
+
+    // Priority 2: Calculate from PPS
+    if (pps && pps > 0) {
+        return Math.floor(investmentAmount / pps);
+    }
+
+    return 0;
+}

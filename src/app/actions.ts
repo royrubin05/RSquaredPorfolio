@@ -6,6 +6,8 @@ import fs from 'fs';
 import path from 'path';
 import { setSession, clearSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
+import { getSafeNotes, upsertSafeNote, deleteSafeNote } from "@/lib/notes";
+import { calculateImpliedValue, calculateTotalInvested, calculateTransactionShares } from "@/lib/calculations";
 import { ensureCompanyFolder, uploadFileToDrive, deleteFileFromDrive } from '@/lib/google_drive';
 
 // --- Auth ---
@@ -923,17 +925,7 @@ export async function convertSafeToEquity(params: {
 
         for (const tx of (transactions || [])) {
             const amount = Number(tx.amount_invested) || 0;
-            let shares = 0;
-
-            // Priority 1: Distribute explicit Total Shares (User Intent)
-            if (params.resultingShares && params.resultingShares > 0 && totalRoundInvested > 0) {
-                const fraction = amount / totalRoundInvested;
-                shares = Math.floor(params.resultingShares * fraction);
-            }
-            // Priority 2: Calculate from PPS
-            else {
-                shares = Math.floor(amount / params.pps);
-            }
+            const shares = calculateTransactionShares(amount, params.pps, params.resultingShares, totalRoundInvested);
 
             // Calculate Ownership %
             let ownership = 0;
