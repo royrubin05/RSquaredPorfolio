@@ -1,6 +1,6 @@
 "use client";
 
-import { Calendar, DollarSign, Users, Plus, TrendingUp, FileText, X, StickyNote, Trash2, RefreshCw, Pencil } from "lucide-react";
+import { Calendar, DollarSign, Users, Plus, TrendingUp, FileText, X, StickyNote, Trash2, RefreshCw, Pencil, PieChart } from "lucide-react";
 
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
@@ -970,7 +970,7 @@ function RoundEventRow({ round, date, valuation, amountRaised, pps, participated
                                     ) : '-'} Shares
                                 </span>
                                 <span className="flex items-center gap-1.5 text-gray-700 font-medium">
-                                    <PieChartIcon size={12} className="text-gray-400" />
+                                    <PieChart size={12} className="text-gray-400" />
                                     {allocations && allocations.length > 0 ? (
                                         allocations.reduce((sum, a) => sum + Number(a.ownership || 0), 0).toFixed(2)
                                     ) : '0'}% Own
