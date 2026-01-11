@@ -1000,7 +1000,7 @@ function RoundEventRow({ round, date, valuation, amountRaised, pps, participated
                                         <span className="text-[9px] text-gray-400 font-medium uppercase tracking-wide">Shares</span>
                                         <span className="font-mono text-gray-700 font-medium">
                                             {allocations && allocations.length > 0 ? (
-                                                formatCompact(allocations.reduce((sum, a) => sum + safeParseBytes(a.shares), 0))
+                                                allocations.reduce((sum, a) => sum + safeParseBytes(a.shares), 0).toLocaleString()
                                             ) : '-'}
                                         </span>
                                     </div>
