@@ -428,339 +428,343 @@ export function CompanyDetail({ initialData, funds = [] }: CompanyDetailProps) {
         setIsConversionModalOpen(true);
     };
 
-} else {
-    alert("Conversion failed: " + result.error);
-}
+    const handleConvertConfirm = async (data: any) => {
+        const result = await convertSafeToEquity(data);
+        if (result.success) {
+            router.refresh();
+        } else {
+            alert("Conversion failed: " + result.error);
+        }
     };
 
-const handleRevert = async (e: React.MouseEvent, roundId: string) => {
-    e.stopPropagation();
-    if (!confirm("Are you sure you want to revert this round to SAFE? This will clear all share data.")) return;
+    const handleRevert = async (e: React.MouseEvent, roundId: string) => {
+        e.stopPropagation();
+        if (!confirm("Are you sure you want to revert this round to SAFE? This will clear all share data.")) return;
 
-    const result = await revertSafeToEquity(roundId);
-    if (result.success) {
-        router.refresh();
-    } else {
-        alert("Revert failed: " + result.error);
-    }
-};
+        const result = await revertSafeToEquity(roundId);
+        if (result.success) {
+            router.refresh();
+        } else {
+            alert("Revert failed: " + result.error);
+        }
+    };
 
-return (
-    <div className="flex-1 w-full p-6 md:p-8 flex flex-col gap-8">
-        {isLogRoundOpen && (
-            <LogRoundModal
-                key={editingRoundData?.id || 'new-round'}
-                isOpen={isLogRoundOpen}
-                onClose={() => {
-                    setIsLogRoundOpen(false);
-                    setEditingRoundData(null);
-                }}
-                companyName={companyName}
-                onSave={handleSaveRound}
-                initialData={editingRoundData || undefined}
-                funds={availableFunds}
-            />
-        )}
+    return (
+        <div className="flex-1 w-full p-6 md:p-8 flex flex-col gap-8">
+            {isLogRoundOpen && (
+                <LogRoundModal
+                    key={editingRoundData?.id || 'new-round'}
+                    isOpen={isLogRoundOpen}
+                    onClose={() => {
+                        setIsLogRoundOpen(false);
+                        setEditingRoundData(null);
+                    }}
+                    companyName={companyName}
+                    onSave={handleSaveRound}
+                    initialData={editingRoundData || undefined}
+                    funds={availableFunds}
+                />
+            )}
 
-        {isConversionModalOpen && conversionRound && (
-            <SAFEConversionModal
-                isOpen={isConversionModalOpen}
-                onClose={() => {
-                    setIsConversionModalOpen(false);
-                    setConversionRound(null);
-                }}
+            {isConversionModalOpen && conversionRound && (
+                <SAFEConversionModal
+                    isOpen={isConversionModalOpen}
+                    onClose={() => {
+                        setIsConversionModalOpen(false);
+                        setConversionRound(null);
+                    }}
 
-                round={conversionRound}
-                onConvert={handleConvertConfirm}
-                equityTypes={availableEquityTypes}
-            />
-        )}
+                    round={conversionRound}
+                    onConvert={handleConvertConfirm}
+                    equityTypes={availableEquityTypes}
+                />
+            )}
 
-        {/* Documents Modal */}
-        {isDocsModalOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-                <div className="w-[600px] bg-white rounded-xl shadow-2xl overflow-hidden border border-border flex flex-col max-h-[80vh]">
-                    <div className="px-6 py-4 border-b border-border flex justify-between items-center bg-gray-50/50">
-                        <h3 className="text-sm font-semibold text-foreground">Company Documents</h3>
-                        <button onClick={() => setIsDocsModalOpen(false)} className="text-muted-foreground hover:text-foreground"><X size={18} /></button>
-                    </div>
-                    <div className="p-6 overflow-y-auto space-y-4">
-                        {(!initialData.documents || initialData.documents.length === 0) ? (
-                            <div className="text-center py-8 text-muted-foreground text-sm">
-                                No documents found for this company.
-                            </div>
-                        ) : (
-                            <ul className="space-y-2">
-                                {initialData.documents.map((doc: any, idx: number) => (
-                                    <DocItem key={idx} name={doc.name} type={doc.type} size={doc.size} url={doc.url} />
-                                ))}
-                            </ul>
-                        )}
-                    </div>
-                    {/* Upload button removed as per user request - use Edit Company to manage docs */}
-                </div>
-            </div>
-        )}
-
-        {/* Notes Modal */}
-        {isNotesModalOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-                <div className="w-[600px] bg-white rounded-xl shadow-2xl overflow-hidden border border-border flex flex-col max-h-[80vh]">
-                    <div className="px-6 py-4 border-b border-border flex justify-between items-center bg-gray-50/50">
-                        <h3 className="text-sm font-semibold text-foreground">Company Notes</h3>
-                        <button onClick={() => setIsNotesModalOpen(false)} className="text-muted-foreground hover:text-foreground"><X size={18} /></button>
-                    </div>
-                    <div className="p-6 overflow-y-auto">
-                        <NotesManager notes={notes} onNotesChange={handleNotesChange} />
-                    </div>
-                </div>
-            </div>
-        )}
-
-
-
-        {/* Edit Company Modal */}
-        <CompanyCreationModal
-            checkIfOpen={isEditModalOpen}
-            onClose={() => setIsEditModalOpen(false)}
-            initialData={initialData as any}
-            onSave={handleSaveCompany}
-        />
-
-        <div className="w-full mx-auto space-y-8">
-            {/* Company Header */}
-            <div className="space-y-6">
-                <div className="flex justify-between items-start">
-                    <div>
-                        <h1 className="text-2xl font-semibold text-foreground tracking-tight">{companyName}</h1>
-                        <p className="text-sm text-muted-foreground mt-1">
-                            {companySector && companySector !== '-' ? companySector : ''}
-                            {companySector && companySector !== '-' && companyStage && companyStage !== '-' ? ' • ' : ''}
-                            {companyStage !== '-' ? companyStage : ''}
-                        </p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <button
-                            onClick={() => setIsEditModalOpen(true)}
-                            className="p-2 text-muted-foreground hover:text-primary hover:bg-white/50 rounded-full transition-colors"
-                            title="Edit Company"
-                        >
-                            <Pencil size={20} />
-                        </button>
-                        <button
-                            onClick={() => setIsNotesModalOpen(true)}
-                            className="flex items-center gap-2 px-4 py-2 bg-white border border-border text-foreground text-sm font-medium rounded-md hover:bg-gray-50 transition-colors shadow-sm"
-                        >
-                            <StickyNote size={16} className="text-muted-foreground" />
-                            <span className="hidden sm:inline">Notes</span>
-                        </button>
-                        <button
-                            onClick={() => setIsDocsModalOpen(true)}
-                            className="flex items-center gap-2 px-4 py-2 bg-white border border-border text-foreground text-sm font-medium rounded-md hover:bg-gray-50 transition-colors shadow-sm"
-                        >
-                            <FileText size={16} className="text-muted-foreground" />
-                            <span className="hidden sm:inline">Documents</span>
-                        </button>
-                        <button
-                            onClick={handleOpenNewRound}
-                            className="flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-md hover:bg-primary/90 transition-colors shadow-sm"
-                        >
-                            <Plus size={16} />
-                            <span>Log Round</span>
-                        </button>
-                    </div>
-                </div>
-
-                <div className="flex gap-12 border-t border-border pt-6 overflow-x-auto pb-2">
-                    <div>
-                        <div className="text-xs font-medium text-muted-foreground uppercase whitespace-nowrap">Total Raised</div>
-                        <div className="text-2xl font-bold text-foreground font-mono mt-1">
-                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: "compact", maximumFractionDigits: 1 }).format(totalRaised)}
+            {/* Documents Modal */}
+            {isDocsModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+                    <div className="w-[600px] bg-white rounded-xl shadow-2xl overflow-hidden border border-border flex flex-col max-h-[80vh]">
+                        <div className="px-6 py-4 border-b border-border flex justify-between items-center bg-gray-50/50">
+                            <h3 className="text-sm font-semibold text-foreground">Company Documents</h3>
+                            <button onClick={() => setIsDocsModalOpen(false)} className="text-muted-foreground hover:text-foreground"><X size={18} /></button>
                         </div>
-                    </div>
-                    <div>
-                        <div className="text-xs font-medium text-muted-foreground uppercase whitespace-nowrap">Total Shares</div>
-                        <div className="text-2xl font-bold text-foreground font-mono mt-1">
-                            {new Intl.NumberFormat('en-US').format(
-                                Object.values(fundHoldings).reduce((sum, h) => sum + h.totalShares, 0)
-                            )}
-                        </div>
-                    </div>
-                    <div>
-                        <div className="text-xs font-medium text-muted-foreground uppercase whitespace-nowrap">Total Ownership</div>
-                        <div className="text-2xl font-bold text-foreground font-mono mt-1">
-                            {Object.values(fundHoldings).reduce((sum, h) => sum + h.ownership, 0).toFixed(2)}%
-                        </div>
-                    </div>
-                    <div>
-                        <div className="text-xs font-medium text-muted-foreground uppercase whitespace-nowrap">Invested (Cost Basis)</div>
-                        <div className="text-2xl font-bold text-foreground font-mono mt-1">
-                            ${new Intl.NumberFormat('en-US', { notation: "compact", maximumFractionDigits: 1 }).format(totalRSquaredInvested)}
-                        </div>
-                    </div>
-                    <div>
-                        <div className="text-xs font-medium text-muted-foreground uppercase whitespace-nowrap">Implied Value</div>
-                        <div className="text-2xl font-bold text-foreground font-mono mt-1">
-                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: "compact", maximumFractionDigits: 1 }).format(
-                                Object.values(fundHoldings).reduce((sum, h) => sum + (h.impliedValue || 0), 0)
-                            )}
-                        </div>
-                    </div>
-                    <div>
-                        <div className="text-xs font-medium text-muted-foreground uppercase whitespace-nowrap">MOIC</div>
-                        <div className="text-2xl font-bold font-mono mt-1 text-emerald-600">
-                            {calculateMOIC(
-                                totalRSquaredInvested,
-                                Object.values(fundHoldings).reduce((sum, h) => sum + (h.impliedValue || 0), 0)
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        {/* Warrants Alert Card */}
-        {rounds.some(r => r.hasWarrants) && (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start justify-between shadow-sm">
-                <div className="flex items-start gap-3">
-                    <div className="p-2 bg-amber-100 rounded-full text-amber-700 mt-0.5">
-                        <FileText size={18} />
-                    </div>
-                    <div>
-                        <h3 className="text-sm font-semibold text-amber-900">Active Warrants</h3>
-                        <div className="mt-1 space-y-1">
-                            {rounds.filter(r => r.hasWarrants).map(r => (
-                                <div key={r.id} className="text-sm text-amber-800 flex items-center gap-2">
-                                    <span className="font-medium">{r.round}:</span>
-                                    <span>
-                                        {r.warrantTerms?.coverageType === 'money' ? '$' : ''}
-                                        {new Intl.NumberFormat('en-US').format(parseFloat(r.warrantTerms?.coverage || '0'))}
-                                        {r.warrantTerms?.coverageType === 'percentage' ? '%' : ''} coverage
-                                    </span>
+                        <div className="p-6 overflow-y-auto space-y-4">
+                            {(!initialData.documents || initialData.documents.length === 0) ? (
+                                <div className="text-center py-8 text-muted-foreground text-sm">
+                                    No documents found for this company.
                                 </div>
-                            ))}
+                            ) : (
+                                <ul className="space-y-2">
+                                    {initialData.documents.map((doc: any, idx: number) => (
+                                        <DocItem key={idx} name={doc.name} type={doc.type} size={doc.size} url={doc.url} />
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
+                        {/* Upload button removed as per user request - use Edit Company to manage docs */}
+                    </div>
+                </div>
+            )}
+
+            {/* Notes Modal */}
+            {isNotesModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+                    <div className="w-[600px] bg-white rounded-xl shadow-2xl overflow-hidden border border-border flex flex-col max-h-[80vh]">
+                        <div className="px-6 py-4 border-b border-border flex justify-between items-center bg-gray-50/50">
+                            <h3 className="text-sm font-semibold text-foreground">Company Notes</h3>
+                            <button onClick={() => setIsNotesModalOpen(false)} className="text-muted-foreground hover:text-foreground"><X size={18} /></button>
+                        </div>
+                        <div className="p-6 overflow-y-auto">
+                            <NotesManager notes={notes} onNotesChange={handleNotesChange} />
                         </div>
                     </div>
                 </div>
-                <div className="text-right">
-                    <div className="text-xs font-medium text-amber-700 uppercase tracking-wide">Next Expiration</div>
-                    <div className="text-sm font-mono font-bold text-amber-900 mt-0.5">
-                        {new Date(rounds.filter(r => r.hasWarrants && r.warrantTerms?.expirationDate).sort((a, b) => new Date(a.warrantTerms!.expirationDate).getTime() - new Date(b.warrantTerms!.expirationDate).getTime())[0]?.warrantTerms?.expirationDate || "").toLocaleDateString()}
+            )}
+
+
+
+            {/* Edit Company Modal */}
+            <CompanyCreationModal
+                checkIfOpen={isEditModalOpen}
+                onClose={() => setIsEditModalOpen(false)}
+                initialData={initialData as any}
+                onSave={handleSaveCompany}
+            />
+
+            <div className="w-full mx-auto space-y-8">
+                {/* Company Header */}
+                <div className="space-y-6">
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <h1 className="text-2xl font-semibold text-foreground tracking-tight">{companyName}</h1>
+                            <p className="text-sm text-muted-foreground mt-1">
+                                {companySector && companySector !== '-' ? companySector : ''}
+                                {companySector && companySector !== '-' && companyStage && companyStage !== '-' ? ' • ' : ''}
+                                {companyStage !== '-' ? companyStage : ''}
+                            </p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={() => setIsEditModalOpen(true)}
+                                className="p-2 text-muted-foreground hover:text-primary hover:bg-white/50 rounded-full transition-colors"
+                                title="Edit Company"
+                            >
+                                <Pencil size={20} />
+                            </button>
+                            <button
+                                onClick={() => setIsNotesModalOpen(true)}
+                                className="flex items-center gap-2 px-4 py-2 bg-white border border-border text-foreground text-sm font-medium rounded-md hover:bg-gray-50 transition-colors shadow-sm"
+                            >
+                                <StickyNote size={16} className="text-muted-foreground" />
+                                <span className="hidden sm:inline">Notes</span>
+                            </button>
+                            <button
+                                onClick={() => setIsDocsModalOpen(true)}
+                                className="flex items-center gap-2 px-4 py-2 bg-white border border-border text-foreground text-sm font-medium rounded-md hover:bg-gray-50 transition-colors shadow-sm"
+                            >
+                                <FileText size={16} className="text-muted-foreground" />
+                                <span className="hidden sm:inline">Documents</span>
+                            </button>
+                            <button
+                                onClick={handleOpenNewRound}
+                                className="flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-md hover:bg-primary/90 transition-colors shadow-sm"
+                            >
+                                <Plus size={16} />
+                                <span>Log Round</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="flex gap-12 border-t border-border pt-6 overflow-x-auto pb-2">
+                        <div>
+                            <div className="text-xs font-medium text-muted-foreground uppercase whitespace-nowrap">Total Raised</div>
+                            <div className="text-2xl font-bold text-foreground font-mono mt-1">
+                                {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: "compact", maximumFractionDigits: 1 }).format(totalRaised)}
+                            </div>
+                        </div>
+                        <div>
+                            <div className="text-xs font-medium text-muted-foreground uppercase whitespace-nowrap">Total Shares</div>
+                            <div className="text-2xl font-bold text-foreground font-mono mt-1">
+                                {new Intl.NumberFormat('en-US').format(
+                                    Object.values(fundHoldings).reduce((sum, h) => sum + h.totalShares, 0)
+                                )}
+                            </div>
+                        </div>
+                        <div>
+                            <div className="text-xs font-medium text-muted-foreground uppercase whitespace-nowrap">Total Ownership</div>
+                            <div className="text-2xl font-bold text-foreground font-mono mt-1">
+                                {Object.values(fundHoldings).reduce((sum, h) => sum + h.ownership, 0).toFixed(2)}%
+                            </div>
+                        </div>
+                        <div>
+                            <div className="text-xs font-medium text-muted-foreground uppercase whitespace-nowrap">Invested (Cost Basis)</div>
+                            <div className="text-2xl font-bold text-foreground font-mono mt-1">
+                                ${new Intl.NumberFormat('en-US', { notation: "compact", maximumFractionDigits: 1 }).format(totalRSquaredInvested)}
+                            </div>
+                        </div>
+                        <div>
+                            <div className="text-xs font-medium text-muted-foreground uppercase whitespace-nowrap">Implied Value</div>
+                            <div className="text-2xl font-bold text-foreground font-mono mt-1">
+                                {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: "compact", maximumFractionDigits: 1 }).format(
+                                    Object.values(fundHoldings).reduce((sum, h) => sum + (h.impliedValue || 0), 0)
+                                )}
+                            </div>
+                        </div>
+                        <div>
+                            <div className="text-xs font-medium text-muted-foreground uppercase whitespace-nowrap">MOIC</div>
+                            <div className="text-2xl font-bold font-mono mt-1 text-emerald-600">
+                                {calculateMOIC(
+                                    totalRSquaredInvested,
+                                    Object.values(fundHoldings).reduce((sum, h) => sum + (h.impliedValue || 0), 0)
+                                )}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-        )}
 
-        <div className="space-y-8">
-            {/* Cap Table - Full Width */}
-            <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-border bg-gray-50/50 flex justify-between items-center">
-                    <h3 className="text-sm font-medium text-foreground">Holdings by Fund</h3>
-                    <span className="text-xs text-muted-foreground">Equity & SAFE Exposure</span>
+            {/* Warrants Alert Card */}
+            {rounds.some(r => r.hasWarrants) && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start justify-between shadow-sm">
+                    <div className="flex items-start gap-3">
+                        <div className="p-2 bg-amber-100 rounded-full text-amber-700 mt-0.5">
+                            <FileText size={18} />
+                        </div>
+                        <div>
+                            <h3 className="text-sm font-semibold text-amber-900">Active Warrants</h3>
+                            <div className="mt-1 space-y-1">
+                                {rounds.filter(r => r.hasWarrants).map(r => (
+                                    <div key={r.id} className="text-sm text-amber-800 flex items-center gap-2">
+                                        <span className="font-medium">{r.round}:</span>
+                                        <span>
+                                            {r.warrantTerms?.coverageType === 'money' ? '$' : ''}
+                                            {new Intl.NumberFormat('en-US').format(parseFloat(r.warrantTerms?.coverage || '0'))}
+                                            {r.warrantTerms?.coverageType === 'percentage' ? '%' : ''} coverage
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                    <div className="text-right">
+                        <div className="text-xs font-medium text-amber-700 uppercase tracking-wide">Next Expiration</div>
+                        <div className="text-sm font-mono font-bold text-amber-900 mt-0.5">
+                            {new Date(rounds.filter(r => r.hasWarrants && r.warrantTerms?.expirationDate).sort((a, b) => new Date(a.warrantTerms!.expirationDate).getTime() - new Date(b.warrantTerms!.expirationDate).getTime())[0]?.warrantTerms?.expirationDate || "").toLocaleDateString()}
+                        </div>
+                    </div>
                 </div>
-                <table className="w-full text-sm">
-                    <thead>
-                        <tr className="border-b border-border text-left">
-                            <th className="px-6 py-3 font-medium text-muted-foreground w-[15%]">Fund</th>
-                            <th className="px-6 py-3 font-medium text-muted-foreground text-left w-[20%]">Round / Instrument</th>
-                            <th className="px-6 py-3 font-medium text-muted-foreground text-right">Ownership</th>
-                            <th className="px-6 py-3 font-medium text-muted-foreground text-right">Shares / Principal</th>
-                            <th className="px-6 py-3 font-medium text-muted-foreground text-right">Cost Basis</th>
-                            <th className="px-6 py-3 font-medium text-muted-foreground text-right">Implied Value</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                        {Object.values(fundHoldings).length === 0 ? (
-                            <tr>
-                                <td colSpan={5} className="px-6 py-8 text-center text-muted-foreground">
-                                    No active holdings recorded.
-                                </td>
+            )}
+
+            <div className="space-y-8">
+                {/* Cap Table - Full Width */}
+                <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+                    <div className="px-6 py-4 border-b border-border bg-gray-50/50 flex justify-between items-center">
+                        <h3 className="text-sm font-medium text-foreground">Holdings by Fund</h3>
+                        <span className="text-xs text-muted-foreground">Equity & SAFE Exposure</span>
+                    </div>
+                    <table className="w-full text-sm">
+                        <thead>
+                            <tr className="border-b border-border text-left">
+                                <th className="px-6 py-3 font-medium text-muted-foreground w-[15%]">Fund</th>
+                                <th className="px-6 py-3 font-medium text-muted-foreground text-left w-[20%]">Round / Instrument</th>
+                                <th className="px-6 py-3 font-medium text-muted-foreground text-right">Ownership</th>
+                                <th className="px-6 py-3 font-medium text-muted-foreground text-right">Shares / Principal</th>
+                                <th className="px-6 py-3 font-medium text-muted-foreground text-right">Cost Basis</th>
+                                <th className="px-6 py-3 font-medium text-muted-foreground text-right">Implied Value</th>
                             </tr>
-                        ) : (
-                            holdingsList.map((holding, idx) => (
-                                <tr key={idx} className="border-b border-border/40 last:border-0 hover:bg-slate-50/50 transition-colors">
-                                    <td className="px-6 py-4">
-                                        <div className="font-medium text-foreground">{holding.fundName}</div>
-                                        <div className="text-xs text-muted-foreground mt-0.5">{holding.equityType}</div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        {holding.instruments.map((inst, i) => (
-                                            <span key={i} className="inline-block px-2 py-0.5 rounded textxs font-medium bg-blue-50 text-blue-700 border border-blue-100 mr-2 mb-1">
-                                                {inst}
-                                            </span>
-                                        ))}
-                                    </td>
-                                    <td className="px-6 py-4 text-right font-mono text-foreground align-top space-y-1">
-                                        <div>{holding.ownership > 0 ? `${holding.ownership.toFixed(2)}%` : '—'}</div>
-                                    </td>
-                                    <td className="px-6 py-4 text-right font-mono text-muted-foreground align-top space-y-1">
-                                        <div>
-                                            {holding.totalShares === 0 && holding.instruments.some(i => i.includes('SAFE'))
-                                                ? 'SAFE'
-                                                : holding.totalShares.toLocaleString()}
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 text-right font-mono text-foreground align-top space-y-1">
-                                        <div>{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(holding.totalCost)}</div>
-                                    </td>
-                                    <td className="px-6 py-4 text-right font-mono text-foreground align-top space-y-1">
-                                        <div>{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(holding.impliedValue || 0)}</div>
+                        </thead>
+                        <tbody className="divide-y divide-border">
+                            {Object.values(fundHoldings).length === 0 ? (
+                                <tr>
+                                    <td colSpan={5} className="px-6 py-8 text-center text-muted-foreground">
+                                        No active holdings recorded.
                                     </td>
                                 </tr>
-                            ))
-                        )}
-                        {Object.values(fundHoldings).length > 0 && (
-                            <tr className="bg-gray-50/50 font-medium">
-                                <td colSpan={4} className="px-6 py-4 text-foreground text-right uppercase text-xs tracking-wider">Total Net Funding</td>
-                                <td className="px-6 py-4 text-right font-mono text-foreground underline decoration-double decoration-gray-300 underline-offset-4">
-                                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(
-                                        Object.values(fundHoldings).reduce((sum, h) => sum + h.totalCost, 0)
-                                    )}
-                                </td>
-                                <td className="px-6 py-4 text-right font-mono text-foreground underline decoration-double decoration-gray-300 underline-offset-4">
-                                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(
-                                        Object.values(fundHoldings).reduce((sum, h) => sum + (h.impliedValue || 0), 0)
-                                    )}
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
-            </div>
-
-            {/* Financing History - Full Width */}
-            <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-border bg-gray-50/50">
-                    <h3 className="text-sm font-medium text-foreground">Financing History</h3>
+                            ) : (
+                                holdingsList.map((holding, idx) => (
+                                    <tr key={idx} className="border-b border-border/40 last:border-0 hover:bg-slate-50/50 transition-colors">
+                                        <td className="px-6 py-4">
+                                            <div className="font-medium text-foreground">{holding.fundName}</div>
+                                            <div className="text-xs text-muted-foreground mt-0.5">{holding.equityType}</div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            {holding.instruments.map((inst, i) => (
+                                                <span key={i} className="inline-block px-2 py-0.5 rounded textxs font-medium bg-blue-50 text-blue-700 border border-blue-100 mr-2 mb-1">
+                                                    {inst}
+                                                </span>
+                                            ))}
+                                        </td>
+                                        <td className="px-6 py-4 text-right font-mono text-foreground align-top space-y-1">
+                                            <div>{holding.ownership > 0 ? `${holding.ownership.toFixed(2)}%` : '—'}</div>
+                                        </td>
+                                        <td className="px-6 py-4 text-right font-mono text-muted-foreground align-top space-y-1">
+                                            <div>
+                                                {holding.totalShares === 0 && holding.instruments.some(i => i.includes('SAFE'))
+                                                    ? 'SAFE'
+                                                    : holding.totalShares.toLocaleString()}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 text-right font-mono text-foreground align-top space-y-1">
+                                            <div>{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(holding.totalCost)}</div>
+                                        </td>
+                                        <td className="px-6 py-4 text-right font-mono text-foreground align-top space-y-1">
+                                            <div>{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(holding.impliedValue || 0)}</div>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                            {Object.values(fundHoldings).length > 0 && (
+                                <tr className="bg-gray-50/50 font-medium">
+                                    <td colSpan={4} className="px-6 py-4 text-foreground text-right uppercase text-xs tracking-wider">Total Net Funding</td>
+                                    <td className="px-6 py-4 text-right font-mono text-foreground underline decoration-double decoration-gray-300 underline-offset-4">
+                                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(
+                                            Object.values(fundHoldings).reduce((sum, h) => sum + h.totalCost, 0)
+                                        )}
+                                    </td>
+                                    <td className="px-6 py-4 text-right font-mono text-foreground underline decoration-double decoration-gray-300 underline-offset-4">
+                                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(
+                                            Object.values(fundHoldings).reduce((sum, h) => sum + (h.impliedValue || 0), 0)
+                                        )}
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
                 </div>
-                <div className="divide-y divide-border">
-                    {rounds.map((round) => (
-                        <div key={round.id} onClick={() => handleRowClick(round)}>
-                            <RoundEventRow
-                                round={round.round}
-                                date={round.date}
-                                valuation={round.valuation}
-                                amountRaised={round.capitalRaised}
-                                pps={round.pps}
-                                participated={round.participated}
-                                onDelete={(e) => handleDeleteRound(e, round.id)}
-                                // New SAFE Props
-                                valuationCap={round.valuationCap}
-                                discount={round.discount}
-                                id={round.id}
-                                structure={round.structure}
-                                onConvertRequest={(e) => handleOpenConversion(e, round)}
-                                originalSafeTerms={round.originalSafeTerms}
-                                onRevertRequest={(e) => handleRevert(e, round.id)}
-                                rSquaredInvested={round.rSquaredInvestedAmount}
-                            />
-                        </div>
-                    ))}
+
+                {/* Financing History - Full Width */}
+                <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+                    <div className="px-6 py-4 border-b border-border bg-gray-50/50">
+                        <h3 className="text-sm font-medium text-foreground">Financing History</h3>
+                    </div>
+                    <div className="divide-y divide-border">
+                        {rounds.map((round) => (
+                            <div key={round.id} onClick={() => handleRowClick(round)}>
+                                <RoundEventRow
+                                    round={round.round}
+                                    date={round.date}
+                                    valuation={round.valuation}
+                                    amountRaised={round.capitalRaised}
+                                    pps={round.pps}
+                                    participated={round.participated}
+                                    onDelete={(e) => handleDeleteRound(e, round.id)}
+                                    // New SAFE Props
+                                    valuationCap={round.valuationCap}
+                                    discount={round.discount}
+                                    id={round.id}
+                                    structure={round.structure}
+                                    onConvertRequest={(e) => handleOpenConversion(e, round)}
+                                    originalSafeTerms={round.originalSafeTerms}
+                                    onRevertRequest={(e) => handleRevert(e, round.id)}
+                                    rSquaredInvested={round.rSquaredInvestedAmount}
+                                />
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-);
+    );
 }
 
 function DocItem({ name, type, size, url }: { name: string; type: string; size: string; url?: string }) {
