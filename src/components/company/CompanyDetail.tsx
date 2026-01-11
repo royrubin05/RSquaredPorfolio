@@ -757,6 +757,7 @@ export function CompanyDetail({ initialData, funds = [] }: CompanyDetailProps) {
                                     originalSafeTerms={round.originalSafeTerms}
                                     onRevertRequest={(e) => handleRevert(e, round.id)}
                                     rSquaredInvested={round.rSquaredInvestedAmount}
+                                    allocations={round.allocations}
                                 />
                             </div>
                         ))}
@@ -799,7 +800,7 @@ function DocItem({ name, type, size, url }: { name: string; type: string; size: 
     )
 }
 
-function RoundEventRow({ round, date, valuation, amountRaised, pps, participated, onDelete, valuationCap, discount, id, structure, onConvertRequest, originalSafeTerms, onRevertRequest, rSquaredInvested }: {
+function RoundEventRow({ round, date, valuation, amountRaised, pps, participated, onDelete, valuationCap, discount, id, structure, onConvertRequest, originalSafeTerms, onRevertRequest, rSquaredInvested, allocations }: {
     round: string;
     date: string;
     valuation: string;
@@ -813,9 +814,9 @@ function RoundEventRow({ round, date, valuation, amountRaised, pps, participated
     structure?: string,
     onConvertRequest?: (e: React.MouseEvent, round: Round) => void,
     onRevertRequest?: (e: React.MouseEvent, roundId: string) => void,
-
     originalSafeTerms?: any,
-    rSquaredInvested?: number
+    rSquaredInvested?: number,
+    allocations?: any[]
 }) {
     const formatCurrencyDisplay = (val: string, type: 'compact' | 'standard' = 'standard') => {
         if (!val || val === '-') return '-';
@@ -830,113 +831,155 @@ function RoundEventRow({ round, date, valuation, amountRaised, pps, participated
     const isSafe = structure === 'SAFE' || round.toLowerCase().includes('safe');
 
     return (
-        <div className={`px-6 py-4 flex items-center justify-between transition-colors cursor-pointer group ${participated ? 'bg-green-50/30 hover:bg-green-50/50' : 'hover:bg-gray-50/50'}`}>
-            <div className="flex items-center gap-6">
-                <div className="w-40">
-                    <div className="font-semibold text-foreground text-sm group-hover:text-primary transition-colors">
-                        {round}
-                        <span className="ml-2 text-[9px] text-muted-foreground font-mono bg-gray-100 px-1 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity" title={id}>
-                            #{id ? id.slice(0, 4) : '???'}
-                        </span>
-                    </div>
-                    <div className="text-xs text-muted-foreground">{date}</div>
-                </div>
-
-                <div className="w-24">
-                    <div className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">Raised</div>
-                    <div className="font-mono text-sm text-foreground">{amountRaised ? formatCurrencyDisplay(amountRaised, 'compact') : '-'}</div>
-                </div>
-
-                {isSafe ? (
-                    // SAFE VIEW: Merged Column or replacing Val/PPS
-                    <div className="w-48">
-                        <div className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">SAFE Terms</div>
-                        <div className="font-mono text-xs text-foreground flex flex-col">
-                            <span>{valuationCap ? `Cap: ${formatCurrencyDisplay(valuationCap, 'compact')}` : 'Uncapped'}</span>
-                            {discount && discount !== '0' && <span className="text-muted-foreground">Discount: {discount}%</span>}
+        <div className={`transition-colors cursor-pointer group border-b border-gray-100 ${participated ? 'bg-green-50/30 hover:bg-green-50/50' : 'hover:bg-gray-50/50'}`}>
+            <div className="px-6 py-4 flex items-center justify-between">
+                <div className="flex items-center gap-6">
+                    <div className="w-40">
+                        <div className="font-semibold text-foreground text-sm group-hover:text-primary transition-colors">
+                            {round}
+                            <span className="ml-2 text-[9px] text-muted-foreground font-mono bg-gray-100 px-1 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity" title={id}>
+                                #{id ? id.slice(0, 4) : '???'}
+                            </span>
                         </div>
+                        <div className="text-xs text-muted-foreground">{date}</div>
                     </div>
-                ) : (
-                    // STANDARD VIEW
-                    <>
-                        <div className="w-24">
-                            <div className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5 flex items-center gap-1">
-                                Valuation
-                                {originalSafeTerms && (
-                                    <span className="text-[8px] bg-purple-100 text-purple-700 px-1 rounded-full font-medium" title="Converted from SAFE">
-                                        CVT
-                                    </span>
-                                )}
+
+                    <div className="w-24">
+                        <div className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">Raised</div>
+                        <div className="font-mono text-sm text-foreground">{amountRaised ? formatCurrencyDisplay(amountRaised, 'compact') : '-'}</div>
+                    </div>
+
+                    {isSafe ? (
+                        // SAFE VIEW: Merged Column or replacing Val/PPS
+                        <div className="w-48">
+                            <div className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">SAFE Terms</div>
+                            <div className="font-mono text-xs text-foreground flex flex-col">
+                                <span>{valuationCap ? `Cap: ${formatCurrencyDisplay(valuationCap, 'compact')}` : 'Uncapped'}</span>
+                                {discount && discount !== '0' && <span className="text-muted-foreground">Discount: {discount}%</span>}
                             </div>
-                            <div className="font-mono text-sm text-foreground">{formatCurrencyDisplay(valuation, 'compact')}</div>
                         </div>
+                    ) : (
+                        // STANDARD VIEW
+                        <>
+                            <div className="w-24">
+                                <div className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5 flex items-center gap-1">
+                                    Valuation
+                                    {originalSafeTerms && (
+                                        <span className="text-[8px] bg-purple-100 text-purple-700 px-1 rounded-full font-medium" title="Converted from SAFE">
+                                            CVT
+                                        </span>
+                                    )}
+                                </div>
+                                <div className="font-mono text-sm text-foreground">{formatCurrencyDisplay(valuation, 'compact')}</div>
+                            </div>
 
-                        <div className="w-24">
-                            <div className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">PPS</div>
-                            <div className="font-mono text-sm text-foreground">{formatCurrencyDisplay(pps, 'standard')}</div>
+                            <div className="w-24">
+                                <div className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">PPS</div>
+                                <div className="font-mono text-sm text-foreground">{formatCurrencyDisplay(pps, 'standard')}</div>
+                            </div>
+                        </>
+                    )}
+
+                    {/* R-Squared Invested Column (Replaces Badge) */}
+                    <div className="w-32 text-left">
+                        <div className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">R-Squared</div>
+                        <div className={`font-mono text-sm ${rSquaredInvested && rSquaredInvested > 0 ? 'text-emerald-700 font-semibold' : 'text-gray-300'}`}>
+                            {rSquaredInvested && rSquaredInvested > 0 ? formatCompact(rSquaredInvested) : '—'}
                         </div>
-                    </>
-                )}
+                    </div>
 
-                {/* R-Squared Invested Column (Replaces Badge) */}
-                <div className="w-32 text-left">
-                    <div className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">R-Squared</div>
-                    <div className={`font-mono text-sm ${rSquaredInvested && rSquaredInvested > 0 ? 'text-emerald-700 font-semibold' : 'text-gray-300'}`}>
-                        {rSquaredInvested && rSquaredInvested > 0 ? formatCompact(rSquaredInvested) : '—'}
+                    {/* Actions */}
+                    <div className="flex items-center gap-2">
+                        {/* SAFE Conversion Buttons */}
+                        <div className="flex gap-2">
+                            {isSafe && !originalSafeTerms && onConvertRequest && (
+                                <button
+                                    onClick={(e) => onConvertRequest(e, {
+                                        id: id || '',
+                                        round,
+                                        date,
+                                        valuation,
+                                        pps,
+                                        documents: [],
+                                        structure: structure as any,
+                                        valuationCap,
+                                        discount,
+                                        originalSafeTerms,
+                                        lead: '',
+                                        capitalRaised: amountRaised
+                                    } as Round)}
+                                    className="text-xs font-semibold bg-blue-600 text-white px-3 py-1.5 rounded-md hover:bg-blue-700 shadow-sm transition-all flex items-center gap-1.5"
+                                >
+                                    <RefreshCw size={12} className="opacity-80" /> Convert
+                                </button>
+                            )}
+
+                            {originalSafeTerms && onRevertRequest && id && (
+                                <button
+                                    onClick={(e) => onRevertRequest(e, id)}
+                                    className="text-[10px] font-medium bg-amber-50 text-amber-600 px-2 py-1 rounded border border-amber-100 hover:bg-amber-100 transition-colors flex items-center gap-1"
+                                    title="Revert to SAFE"
+                                >
+                                    <RefreshCw size={10} /> Revert
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
 
-                {/* Actions */}
-                <div className="flex items-center gap-2">
-                    {/* SAFE Conversion Buttons */}
-                    <div className="flex gap-2">
-                        {isSafe && !originalSafeTerms && onConvertRequest && (
-                            <button
-                                onClick={(e) => onConvertRequest(e, {
-                                    id: id || '',
-                                    round,
-                                    date,
-                                    valuation,
-                                    pps,
-                                    documents: [],
-                                    structure: structure as any,
-                                    valuationCap,
-                                    discount,
-                                    originalSafeTerms,
-                                    lead: '',
-                                    capitalRaised: amountRaised
-                                } as Round)}
-                                className="text-xs font-semibold bg-blue-600 text-white px-3 py-1.5 rounded-md hover:bg-blue-700 shadow-sm transition-all flex items-center gap-1.5"
-                            >
-                                <RefreshCw size={12} className="opacity-80" /> Convert
-                            </button>
-                        )}
+                {/* Right side Actions */}
+                <div className="flex items-center gap-4">
+                    {onDelete && (
+                        <button
+                            onClick={onDelete}
+                            className="text-muted-foreground hover:text-red-500 transition-colors p-2 rounded-full hover:bg-red-50 opacity-0 group-hover:opacity-100"
+                        >
+                            <Trash2 size={16} />
+                        </button>
+                    )}
+                </div>
+            </div>
 
-                        {originalSafeTerms && onRevertRequest && id && (
-                            <button
-                                onClick={(e) => onRevertRequest(e, id)}
-                                className="text-[10px] font-medium bg-amber-50 text-amber-600 px-2 py-1 rounded border border-amber-100 hover:bg-amber-100 transition-colors flex items-center gap-1"
-                                title="Revert to SAFE"
-                            >
-                                <RefreshCw size={10} /> Revert
-                            </button>
-                        )}
+            {/* Sub-row */}
+            {originalSafeTerms && (
+                <div className="px-6 pb-4 pt-1 flex items-center bg-gray-50/20 border-t border-gray-50">
+                    <div className="w-10 flex-shrink-0"></div>
+
+                    <div className="flex items-center gap-6 ml-4 text-xs">
+                        {/* Original Terms */}
+                        <div className="flex flex-col">
+                            <span className="uppercase text-[10px] font-bold tracking-wider text-muted-foreground mb-0.5">Original SAFE</span>
+                            <span className="text-gray-600 font-mono bg-gray-100 px-1.5 py-0.5 rounded inline-block">
+                                {originalSafeTerms.valuation_cap ? `Cap: ${formatCurrencyDisplay(originalSafeTerms.valuation_cap, 'compact')}` : 'Uncapped'}
+                                <span className="mx-1.5 text-gray-300">|</span>
+                                {originalSafeTerms.safe_discount}% Dsc
+                            </span>
+                        </div>
+
+                        {/* Arrow */}
+                        <div className="text-gray-300">→</div>
+
+                        {/* Conversion Result */}
+                        <div className="flex flex-col">
+                            <span className="uppercase text-[10px] font-bold tracking-wider text-emerald-700 mb-0.5">Converted Position</span>
+                            <div className="flex items-center gap-3">
+                                <span className="flex items-center gap-1.5 text-gray-700 font-medium">
+                                    <Users size={12} className="text-gray-400" />
+                                    {allocations && allocations.length > 0 ? (
+                                        formatCompact(allocations.reduce((sum, a) => sum + safeParseBytes(a.shares), 0))
+                                    ) : '-'} Shares
+                                </span>
+                                <span className="flex items-center gap-1.5 text-gray-700 font-medium">
+                                    <PieChartIcon size={12} className="text-gray-400" />
+                                    {allocations && allocations.length > 0 ? (
+                                        allocations.reduce((sum, a) => sum + Number(a.ownership || 0), 0).toFixed(2)
+                                    ) : '0'}% Own
+                                </span>
+                            </div>
+                        </div>
                     </div>
                 </div>
-
-            </div>
-
-            {/* Right side Actions */}
-            <div className="flex items-center gap-4">
-                {onDelete && (
-                    <button
-                        onClick={onDelete}
-                        className="text-muted-foreground hover:text-red-500 transition-colors p-2 rounded-full hover:bg-red-50 opacity-0 group-hover:opacity-100"
-                    >
-                        <Trash2 size={16} />
-                    </button>
-                )}
-            </div>
+            )}
         </div >
     )
 }
