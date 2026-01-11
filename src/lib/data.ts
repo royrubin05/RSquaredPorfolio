@@ -250,8 +250,10 @@ export async function getCompanyDetails(id: string) {
             const warrantTx = roundTx?.find(t => t.security_type === 'Warrant');
             const hasWarrants = !!warrantTx;
 
-            // Determine structure based on transactions or existence of SAFE terms
-            const isSafe = roundTx?.some(t => t.security_type === 'SAFE') || !!r.valuation_cap || !!r.safe_discount || r.round_label.toUpperCase().includes('SAFE');
+            // Determine structure: Trust DB explicit structure if set, otherwise fallback to heuristics
+            const isSafe = r.structure
+                ? r.structure === 'SAFE'
+                : (roundTx?.some(t => t.security_type === 'SAFE') || !!r.valuation_cap || !!r.safe_discount || r.round_label.toUpperCase().includes('SAFE'));
 
             return {
                 id: r.id,
