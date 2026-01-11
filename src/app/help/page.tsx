@@ -155,7 +155,8 @@ export default function HelpPage() {
                                     <li>Go to the Company Page financing history grid.</li>
                                     <li>Find the SAFE round row.</li>
                                     <li>Click the <strong>Convert</strong> button (Icon).</li>
-                                    <li>Enter the conversion terms (Shadow Class PPS usually differs from the new money PPS).</li>
+                                    <li>Enter the <strong>Total Shares</strong> you received (this ensures 100% accuracy).</li>
+                                    <li>Enter your <strong>Ownership %</strong> (optional, but requested for reporting).</li>
                                     <li>This marks the SAFE as "Converted" and creates a new Equity line item.</li>
                                 </ul>
                             </div>
