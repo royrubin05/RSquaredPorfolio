@@ -433,7 +433,7 @@ export function CompanyDetail({ initialData, funds = [] }: CompanyDetailProps) {
         if (result.success) {
             router.refresh();
         } else {
-            alert("Conversion failed. Please check logs.");
+            alert("Conversion failed: " + result.error);
         }
     };
 
