@@ -943,42 +943,60 @@ function RoundEventRow({ round, date, valuation, amountRaised, pps, participated
 
             {/* Sub-row */}
             {originalSafeTerms && (
-                <div className="px-6 pb-4 pt-1 flex items-center bg-gray-50/20 border-t border-gray-50">
-                    <div className="w-10 flex-shrink-0"></div>
+                <div className="bg-gray-50/50 border-t border-gray-100 px-6 py-3 flex items-center gap-4 text-xs">
 
-                    <div className="flex items-center gap-6 ml-4 text-xs">
-                        {/* Original Terms */}
-                        <div className="flex flex-col">
-                            <span className="uppercase text-[10px] font-bold tracking-wider text-muted-foreground mb-0.5">Original SAFE</span>
-                            <span className="text-gray-600 font-mono bg-gray-100 px-1.5 py-0.5 rounded inline-block">
+                    {/* Visual Connection */}
+                    <div className="w-40 flex-shrink-0 flex items-center gap-2 text-muted-foreground">
+                        <div className="h-px bg-gray-200 w-full"></div>
+                        <span className="text-[10px] font-medium uppercase tracking-wider whitespace-nowrap">Conversion Details</span>
+                    </div>
+
+                    {/* Timeline / Flow */}
+                    <div className="flex-1 flex items-center justify-between bg-white border border-gray-100 rounded-md px-4 py-2 shadow-sm">
+
+                        {/* Origin */}
+                        <div className="flex flex-col items-start gap-0.5">
+                            <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1">
+                                Original SAFE
+                            </div>
+                            <div className="font-mono text-gray-700 font-medium">
                                 {originalSafeTerms.valuation_cap ? `Cap: ${formatCurrencyDisplay(originalSafeTerms.valuation_cap, 'compact')}` : 'Uncapped'}
-                                <span className="mx-1.5 text-gray-300">|</span>
+                                <span className="text-gray-300 mx-1.5">|</span>
                                 {originalSafeTerms.safe_discount}% Dsc
-                            </span>
+                            </div>
                         </div>
 
-                        {/* Arrow */}
-                        <div className="text-gray-300">→</div>
+                        {/* Connector */}
+                        <div className="text-gray-300 px-4">
+                            <TrendingUp size={14} className="rotate-90 md:rotate-0" />
+                        </div>
 
-                        {/* Conversion Result */}
-                        <div className="flex flex-col">
-                            <span className="uppercase text-[10px] font-bold tracking-wider text-emerald-700 mb-0.5">Converted Position</span>
-                            <div className="flex items-center gap-3">
-                                <span className="flex items-center gap-1.5 text-gray-700 font-medium">
+                        {/* Destination */}
+                        <div className="flex flex-col items-end gap-0.5">
+                            <div className="text-[10px] uppercase tracking-wider text-emerald-600 font-semibold">
+                                Converted Position
+                            </div>
+                            <div className="flex items-center gap-3 font-mono text-gray-700 font-medium">
+                                <span className="flex items-center gap-1.5" title="Total Shares">
                                     <Users size={12} className="text-gray-400" />
                                     {allocations && allocations.length > 0 ? (
                                         formatCompact(allocations.reduce((sum, a) => sum + safeParseBytes(a.shares), 0))
-                                    ) : '-'} Shares
+                                    ) : '-'}
                                 </span>
-                                <span className="flex items-center gap-1.5 text-gray-700 font-medium">
+                                <span className="text-gray-300">|</span>
+                                <span className="flex items-center gap-1.5" title="Ownership %">
                                     <PieChart size={12} className="text-gray-400" />
                                     {allocations && allocations.length > 0 ? (
                                         allocations.reduce((sum, a) => sum + Number(a.ownership || 0), 0).toFixed(2)
-                                    ) : '0'}% Own
+                                    ) : '0'}%
                                 </span>
                             </div>
                         </div>
+
                     </div>
+
+                    {/* Spacer to align with right actions */}
+                    <div className="w-[88px] flex-shrink-0"></div>
                 </div>
             )}
         </div >
