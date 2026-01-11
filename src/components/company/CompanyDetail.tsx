@@ -952,44 +952,51 @@ function RoundEventRow({ round, date, valuation, amountRaised, pps, participated
                     </div>
 
                     {/* Timeline / Flow */}
-                    <div className="flex-1 flex items-center justify-between bg-white border border-gray-100 rounded-md px-4 py-2 shadow-sm">
+                    <div className="flex-1 flex items-center bg-white border border-gray-100 rounded-md px-4 py-2 shadow-sm relative overflow-hidden">
 
-                        {/* Origin */}
-                        <div className="flex flex-col items-start gap-0.5">
-                            <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1">
-                                Original SAFE
-                            </div>
-                            <div className="font-mono text-gray-700 font-medium">
-                                {originalSafeTerms.valuation_cap ? `Cap: ${formatCurrencyDisplay(originalSafeTerms.valuation_cap, 'compact')}` : 'Uncapped'}
-                                <span className="text-gray-300 mx-1.5">|</span>
-                                {originalSafeTerms.safe_discount}% Dsc
-                            </div>
-                        </div>
+                        {/* Background Flow Line */}
+                        <div className="absolute left-0 right-0 top-1/2 h-px -translate-y-1/2 bg-gradient-to-r from-transparent via-gray-100 to-transparent pointer-events-none" />
 
-                        {/* Connector */}
-                        <div className="text-gray-300 px-4">
-                            <TrendingUp size={14} className="rotate-90 md:rotate-0" />
-                        </div>
-
-                        {/* Destination */}
-                        <div className="flex flex-col items-end gap-0.5">
-                            <div className="text-[10px] uppercase tracking-wider text-emerald-600 font-semibold">
-                                Converted Position
+                        <div className="flex items-center gap-8 relative z-10 w-full justify-center">
+                            {/* Origin */}
+                            <div className="flex flex-col items-start gap-0.5 min-w-[140px]">
+                                <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1">
+                                    Original SAFE
+                                </div>
+                                <div className="font-mono text-gray-700 font-medium whitespace-nowrap">
+                                    {originalSafeTerms.valuation_cap ? `Cap: ${formatCurrencyDisplay(originalSafeTerms.valuation_cap, 'compact')}` : 'Uncapped'}
+                                    <span className="text-gray-300 mx-1.5">|</span>
+                                    {originalSafeTerms.safe_discount}% Dsc
+                                </div>
                             </div>
-                            <div className="flex items-center gap-3 font-mono text-gray-700 font-medium">
-                                <span className="flex items-center gap-1.5" title="Total Shares">
-                                    <Users size={12} className="text-gray-400" />
-                                    {allocations && allocations.length > 0 ? (
-                                        formatCompact(allocations.reduce((sum, a) => sum + safeParseBytes(a.shares), 0))
-                                    ) : '-'}
-                                </span>
-                                <span className="text-gray-300">|</span>
-                                <span className="flex items-center gap-1.5" title="Ownership %">
-                                    <PieChart size={12} className="text-gray-400" />
-                                    {allocations && allocations.length > 0 ? (
-                                        allocations.reduce((sum, a) => sum + Number(a.ownership || 0), 0).toFixed(2)
-                                    ) : '0'}%
-                                </span>
+
+                            {/* Connector */}
+                            <div className="flex-1 flex justify-center text-emerald-500/50 max-w-[100px]">
+                                <div className="bg-emerald-50 p-1.5 rounded-full ring-4 ring-white">
+                                    <TrendingUp size={16} />
+                                </div>
+                            </div>
+
+                            {/* Destination */}
+                            <div className="flex flex-col items-end gap-0.5 min-w-[140px]">
+                                <div className="text-[10px] uppercase tracking-wider text-emerald-600 font-semibold">
+                                    Converted Position
+                                </div>
+                                <div className="flex items-center gap-3 font-mono text-gray-700 font-medium whitespace-nowrap">
+                                    <span className="flex items-center gap-1.5" title="Total Shares">
+                                        <Users size={12} className="text-gray-400" />
+                                        {allocations && allocations.length > 0 ? (
+                                            formatCompact(allocations.reduce((sum, a) => sum + safeParseBytes(a.shares), 0))
+                                        ) : '-'}
+                                    </span>
+                                    <span className="text-gray-300">|</span>
+                                    <span className="flex items-center gap-1.5" title="Ownership %">
+                                        <PieChart size={12} className="text-gray-400" />
+                                        {allocations && allocations.length > 0 ? (
+                                            allocations.reduce((sum, a) => sum + Number(a.ownership || 0), 0).toFixed(2)
+                                        ) : '0'}%
+                                    </span>
+                                </div>
                             </div>
                         </div>
 
