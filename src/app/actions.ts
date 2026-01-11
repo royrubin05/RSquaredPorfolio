@@ -916,13 +916,18 @@ export async function convertSafeToEquity(params: {
         // 5. Update Transactions (Calculate Shares per Tx)
         for (const tx of (transactions || [])) {
             const shares = Math.floor((Number(tx.amount_invested) || 0) / params.pps);
-            await supabase
+            const { error: txUpdateErr } = await supabase
                 .from('transactions')
                 .update({
-                    number_of_shares: shares,
-                    equity_type: params.equityType // "Series Seed Preferred" etc.
+                    shares_purchased: shares,
+                    equity_type: params.equityType
                 })
                 .eq('id', tx.id);
+
+            if (txUpdateErr) {
+                console.error("Tx Update Error:", txUpdateErr);
+                return { error: "Transaction update failed: " + txUpdateErr.message };
+            }
         }
 
         revalidatePath('/');
