@@ -861,6 +861,7 @@ export async function convertSafeToEquity(params: {
     equityType: string;
     valuation: number | null;
     resultingShares: number;
+    ownership?: number;
 }) {
     try {
         const supabase = await createClient();
@@ -916,13 +917,23 @@ export async function convertSafeToEquity(params: {
         // 5. Update Transactions (Calculate Shares per Tx)
         const postMoney = params.valuation || round.post_money_valuation;
 
+        // Calculate total invested to split ownership proportionally if needed
+        let totalRoundInvested = 0;
+        for (const tx of (transactions || [])) { totalRoundInvested += (Number(tx.amount_invested) || 0); }
+
         for (const tx of (transactions || [])) {
             const shares = Math.floor((Number(tx.amount_invested) || 0) / params.pps);
 
-            // Calculate Ownership % (Invested / Post-Money)
-            // If postMoney is missing, we can't calculate it accurately, defaulting to 0?
+            // Calculate Ownership %
             let ownership = 0;
-            if (postMoney && postMoney > 0) {
+
+            // Priority 1: Explicit Input from Modal
+            if (params.ownership !== undefined && params.ownership !== null && totalRoundInvested > 0) {
+                const fraction = (Number(tx.amount_invested) || 0) / totalRoundInvested;
+                ownership = params.ownership * fraction;
+            }
+            // Priority 2: Calculated from PostMoney (Fallback)
+            else if (postMoney && postMoney > 0) {
                 ownership = (Number(tx.amount_invested) / postMoney) * 100;
             }
 
