@@ -818,9 +818,10 @@ function RoundEventRow({ round, date, valuation, amountRaised, pps, participated
     rSquaredInvested?: number,
     allocations?: any[]
 }) {
-    const formatCurrencyDisplay = (val: string, type: 'compact' | 'standard' = 'standard') => {
+    const formatCurrencyDisplay = (val: string | number, type: 'compact' | 'standard' = 'standard') => {
         if (!val || val === '-') return '-';
-        const num = parseFloat(val.replace(/[^0-9.-]+/g, ""));
+        // Handle explicit numbers directly to avoid .replace crash
+        const num = typeof val === 'number' ? val : parseFloat(String(val).replace(/[^0-9.-]+/g, ""));
 
         // Return '-' for 0 or NaN to avoid "$0.00" on unpriced rounds
         if (isNaN(num) || num === 0) return '-';
