@@ -265,7 +265,7 @@ export async function getCompanyDetails(id: string) {
                 companyId: r.company_id, // Ensure we have this for later if needed
                 valuationCap: r.valuation_cap?.toString(),
                 discount: r.safe_discount?.toString(),
-                pps: r.price_per_share?.toString() || "-",
+                pps: (r.share_price || r.price_per_share)?.toString() || "-",
                 capitalRaised: r.round_size?.toString() || "-",
                 lead: r.round_syndicate?.[0]?.investor?.name || "-",
                 participated,
