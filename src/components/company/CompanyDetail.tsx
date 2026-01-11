@@ -835,6 +835,11 @@ function RoundEventRow({ round, date, valuation, amountRaised, pps, participated
                 <div className="w-32">
                     <div className="font-semibold text-foreground text-sm group-hover:text-primary transition-colors">
                         {round}
+                        {originalSafeTerms && (
+                            <span className="ml-2 text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full font-medium" title="Converted SAFE">
+                                Converted
+                            </span>
+                        )}
                         <span className="ml-2 text-[9px] text-muted-foreground font-mono bg-gray-100 px-1 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity" title={id}>
                             #{id ? id.slice(0, 4) : '???'}
                         </span>
