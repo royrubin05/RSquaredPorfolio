@@ -914,13 +914,24 @@ export async function convertSafeToEquity(params: {
         }
 
         // 5. Update Transactions (Calculate Shares per Tx)
+        const postMoney = params.valuation || round.post_money_valuation;
+
         for (const tx of (transactions || [])) {
             const shares = Math.floor((Number(tx.amount_invested) || 0) / params.pps);
+
+            // Calculate Ownership % (Invested / Post-Money)
+            // If postMoney is missing, we can't calculate it accurately, defaulting to 0?
+            let ownership = 0;
+            if (postMoney && postMoney > 0) {
+                ownership = (Number(tx.amount_invested) / postMoney) * 100;
+            }
+
             const { error: txUpdateErr } = await supabase
                 .from('transactions')
                 .update({
                     shares_purchased: shares,
-                    equity_type: params.equityType
+                    equity_type: params.equityType,
+                    ownership_percentage: ownership
                 })
                 .eq('id', tx.id);
 
@@ -974,8 +985,9 @@ export async function revertSafeToEquity(roundId: string) {
     const { error: txErr } = await supabase
         .from('transactions')
         .update({
-            number_of_shares: null, // Clear shares
-            equity_type: null // Clear specific priced type
+            shares_purchased: null, // Clear shares
+            equity_type: null, // Clear specific priced type
+            ownership_percentage: 0 // Reset ownership
         })
         .eq('round_id', roundId);
 

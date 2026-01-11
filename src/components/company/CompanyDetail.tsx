@@ -832,14 +832,9 @@ function RoundEventRow({ round, date, valuation, amountRaised, pps, participated
     return (
         <div className={`px-6 py-4 flex items-center justify-between transition-colors cursor-pointer group ${participated ? 'bg-green-50/30 hover:bg-green-50/50' : 'hover:bg-gray-50/50'}`}>
             <div className="flex items-center gap-6">
-                <div className="w-32">
+                <div className="w-40">
                     <div className="font-semibold text-foreground text-sm group-hover:text-primary transition-colors">
                         {round}
-                        {originalSafeTerms && (
-                            <span className="ml-2 text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full font-medium" title="Converted SAFE">
-                                Converted
-                            </span>
-                        )}
                         <span className="ml-2 text-[9px] text-muted-foreground font-mono bg-gray-100 px-1 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity" title={id}>
                             #{id ? id.slice(0, 4) : '???'}
                         </span>
@@ -865,7 +860,14 @@ function RoundEventRow({ round, date, valuation, amountRaised, pps, participated
                     // STANDARD VIEW
                     <>
                         <div className="w-24">
-                            <div className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">Valuation</div>
+                            <div className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5 flex items-center gap-1">
+                                Valuation
+                                {originalSafeTerms && (
+                                    <span className="text-[8px] bg-purple-100 text-purple-700 px-1 rounded-full font-medium" title="Converted from SAFE">
+                                        CVT
+                                    </span>
+                                )}
+                            </div>
                             <div className="font-mono text-sm text-foreground">{formatCurrencyDisplay(valuation, 'compact')}</div>
                         </div>
 
@@ -888,7 +890,7 @@ function RoundEventRow({ round, date, valuation, amountRaised, pps, participated
                 <div className="flex items-center gap-2">
                     {/* SAFE Conversion Buttons */}
                     <div className="flex gap-2">
-                        {isSafe && onConvertRequest && (
+                        {isSafe && !originalSafeTerms && onConvertRequest && (
                             <button
                                 onClick={(e) => onConvertRequest(e, {
                                     id: id || '',
@@ -909,17 +911,16 @@ function RoundEventRow({ round, date, valuation, amountRaised, pps, participated
                                 <RefreshCw size={12} className="opacity-80" /> Convert
                             </button>
                         )}
-                        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                            {originalSafeTerms && onRevertRequest && id && (
-                                <button
-                                    onClick={(e) => onRevertRequest(e, id)}
-                                    className="text-[10px] font-medium bg-amber-50 text-amber-600 px-2 py-1 rounded border border-amber-100 hover:bg-amber-100 transition-colors flex items-center gap-1"
-                                    title="Revert to SAFE"
-                                >
-                                    <RefreshCw size={10} /> Revert
-                                </button>
-                            )}
-                        </div>
+
+                        {originalSafeTerms && onRevertRequest && id && (
+                            <button
+                                onClick={(e) => onRevertRequest(e, id)}
+                                className="text-[10px] font-medium bg-amber-50 text-amber-600 px-2 py-1 rounded border border-amber-100 hover:bg-amber-100 transition-colors flex items-center gap-1"
+                                title="Revert to SAFE"
+                            >
+                                <RefreshCw size={10} /> Revert
+                            </button>
+                        )}
                     </div>
                 </div>
 
