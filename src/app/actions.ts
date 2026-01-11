@@ -6,7 +6,6 @@ import fs from 'fs';
 import path from 'path';
 import { setSession, clearSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
-import { getSafeNotes, upsertSafeNote, deleteSafeNote } from "@/lib/notes";
 import { calculateImpliedValue, calculateTotalInvested, calculateTransactionShares } from "@/lib/calculations";
 import { ensureCompanyFolder, uploadFileToDrive, deleteFileFromDrive } from '@/lib/google_drive';
 
