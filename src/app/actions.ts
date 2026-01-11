@@ -922,7 +922,18 @@ export async function convertSafeToEquity(params: {
         for (const tx of (transactions || [])) { totalRoundInvested += (Number(tx.amount_invested) || 0); }
 
         for (const tx of (transactions || [])) {
-            const shares = Math.floor((Number(tx.amount_invested) || 0) / params.pps);
+            const amount = Number(tx.amount_invested) || 0;
+            let shares = 0;
+
+            // Priority 1: Distribute explicit Total Shares (User Intent)
+            if (params.resultingShares && params.resultingShares > 0 && totalRoundInvested > 0) {
+                const fraction = amount / totalRoundInvested;
+                shares = Math.floor(params.resultingShares * fraction);
+            }
+            // Priority 2: Calculate from PPS
+            else {
+                shares = Math.floor(amount / params.pps);
+            }
 
             // Calculate Ownership %
             let ownership = 0;
