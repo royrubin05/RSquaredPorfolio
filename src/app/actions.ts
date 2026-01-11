@@ -335,6 +335,7 @@ export async function upsertRound(data: any, companyId: string) {
         round_size: cleanCurrency(data.roundTerms.capitalRaised),
         valuation_cap: cleanCurrency(data.roundTerms.valuationCap),
         safe_discount: cleanCurrency(data.roundTerms.discount),
+        structure: data.roundTerms.structure || 'Equity',
         // created_at? handled by default
     };
 
