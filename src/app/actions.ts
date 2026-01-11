@@ -954,7 +954,10 @@ export async function convertSafeToEquity(params: {
             }
         }
 
-        revalidatePath('/');
+        if (round.company_id) {
+            revalidatePath(`/companies/${round.company_id}`);
+        }
+        revalidatePath('/'); // Updates home dashboard and cached list views
         return { success: true };
     } catch (e: any) {
         console.error("Conversion Logic Error:", e);
