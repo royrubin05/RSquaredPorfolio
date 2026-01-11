@@ -885,7 +885,7 @@ function RoundEventRow({ round, date, valuation, amountRaised, pps, participated
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex items-center gap-2">
                     {/* SAFE Conversion Buttons */}
                     <div className="flex gap-2">
                         {isSafe && onConvertRequest && (
