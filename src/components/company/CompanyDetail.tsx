@@ -988,7 +988,7 @@ function RoundEventRow({ round, date, valuation, amountRaised, pps, participated
                                     <div className="flex flex-col">
                                         <span className="text-[9px] text-gray-400 font-medium uppercase tracking-wide">PPS</span>
                                         <span className="font-mono text-gray-700 font-medium">
-                                            {formatCurrencyDisplay(pricePerShare, 'standard')}
+                                            {formatCurrencyDisplay(pps, 'standard')}
                                         </span>
                                     </div>
 
