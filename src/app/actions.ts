@@ -563,6 +563,7 @@ export async function upsertRound(data: any, companyId: string) {
         }
     }
 
+    revalidatePath(`/companies/${companyId}`);
     revalidatePath('/');
     return { success: true };
 }
