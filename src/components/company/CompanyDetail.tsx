@@ -871,7 +871,7 @@ function RoundEventRow({ round, date, valuation, amountRaised, pps, participated
                                         </span>
                                     )}
                                 </div>
-                                <div className="font-mono text-sm text-foreground">{formatCurrencyDisplay(valuation, 'compact')}</div>
+                                <div className="font-mono text-sm text-foreground">{formatCurrencyDisplay(valuation || originalSafeTerms?.valuation_cap, 'compact')}</div>
                             </div>
 
                             <div className="w-24">
