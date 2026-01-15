@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import fs from 'fs';
 import path from 'path';
-import { setSession, clearSession } from '@/lib/auth';
+import { setSession, clearSession, getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { calculateImpliedValue, calculateTotalInvested, calculateTransactionShares } from "@/lib/calculations";
 import { ensureCompanyFolder, uploadFileToDrive, deleteFileFromDrive } from '@/lib/google_drive';
@@ -723,7 +723,28 @@ export async function getFeatureRequests() {
 
 export async function addFeatureRequest(content: string, priority: string = 'Medium', type: string = 'Feature', files: any[] = []) {
     const supabase = await createClient();
-    return await supabase.from('feature_requests').insert({ content, priority, type, files, status: 'Open' });
+
+    // Get Current User
+    const userId = await getSession();
+    let userName = null;
+
+    if (userId) {
+        const { data: user } = await supabase
+            .from('team_members')
+            .select('name')
+            .eq('id', userId)
+            .single();
+        if (user) userName = user.name;
+    }
+
+    return await supabase.from('feature_requests').insert({
+        content,
+        priority,
+        type,
+        files,
+        status: 'Open',
+        submitted_by: userName
+    });
 }
 
 export async function updateFeatureRequest(id: string, updates: any) {

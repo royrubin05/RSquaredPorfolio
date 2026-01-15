@@ -14,6 +14,7 @@ interface FeatureRequest {
     type: string; // Feature, Bug, Report
     files: { name: string; url: string }[];
     created_at: string;
+    submitted_by?: string;
 }
 
 export function FeatureRequestManager({ initialRequests }: { initialRequests: FeatureRequest[] }) {
@@ -255,6 +256,12 @@ export function FeatureRequestManager({ initialRequests }: { initialRequests: Fe
 
                                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                     <span>{new Date(req.created_at).toLocaleDateString()}</span>
+                                    {req.submitted_by && (
+                                        <>
+                                            <span>•</span>
+                                            <span>By {req.submitted_by}</span>
+                                        </>
+                                    )}
                                     {req.priority && req.priority !== 'Medium' && (
                                         <>
                                             <span>•</span>
